@@ -1,4 +1,5 @@
-const MainContract = artifacts.require("GameOfShips.sol");
+const GameContract = artifacts.require("GameOfShips.sol");
+const FactoryContract = artifacts.require("GameOfShipsFactory.sol");
 const crypto = require('crypto');
 const assert = require('assert');
 const truffleAssert = require('truffle-assertions');
@@ -27,7 +28,6 @@ const BOMBS = [
     [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
 ];
 const sha256 = (string) => crypto.createHash('sha256').update(string).digest();
-const timestamp = () => parseInt(Date.now() / 1000);
 const shipsToBuffer = (ships, seed = SEED) => {
     let buffers = ships.map(ship => {
         let [ beginX, beginY, vertical ] = ship;
@@ -40,30 +40,41 @@ const countPlacedBombs = (bombs) => {
     return bombs.reduce((a, b) => a + b.filter(bomb => bomb).length, 0);
 }
 
-it('Should have correct balance on init', async function() {
-    console.log('START VALUE:', START_VALUE.toString());
+it("Should be creatable by factory", async function() {
     const shipsBuffer = shipsToBuffer(SHIPS);
-    const MainContractInstance = await MainContract.new(
+    const FactoryInstance = await FactoryContract.deployed();
+    const tx = await FactoryInstance.createGame(
         sha256(shipsBuffer), // creation hash
         BOMB_COST, // bomb cost
-        timestamp(), // timeout,
+        10, // timeout in blocks,
         { value: START_VALUE }
     );
-    const balance = await web3.eth.getBalance(MainContractInstance.address);
+    truffleAssert.eventEmitted(tx, 'GameCreated');
+});
+
+it('Should have correct balance on init', async function() {
+    const shipsBuffer = shipsToBuffer(SHIPS);
+    const GameContractInstance = await GameContract.new(
+        sha256(shipsBuffer), // creation hash
+        BOMB_COST, // bomb cost
+        10, // timeout in blocks,
+        { value: START_VALUE }
+    );
+    const balance = await web3.eth.getBalance(GameContractInstance.address);
 
     assert.equal(balance, START_VALUE, 'Contract address balance does not equal initial value!');
 });
 
 it('Should disallow placing bombs if not enough wei sent', async function() {
     const shipsBuffer = shipsToBuffer(SHIPS);
-    const MainContractInstance = await MainContract.new(
+    const GameContractInstance = await GameContract.new(
         sha256(shipsBuffer), // creation hash
         BOMB_COST, // bomb cost
-        timestamp(), // timeout,
+        10, // timeout in blocks,
         { value: START_VALUE }
     );
     await truffleAssert.reverts(
-        MainContractInstance.setBombs(
+        GameContractInstance.setBombs(
             BOMBS,
             { value: countPlacedBombs(BOMBS) * BOMB_COST - 1 }
         ),
@@ -73,18 +84,18 @@ it('Should disallow placing bombs if not enough wei sent', async function() {
 
 it('Should disallow placing bombs twice', async function() {
     const shipsBuffer = shipsToBuffer(SHIPS);
-    const MainContractInstance = await MainContract.new(
+    const GameContractInstance = await GameContract.new(
         sha256(shipsBuffer), // creation hash
         BOMB_COST, // bomb cost
-        timestamp(), // timeout,
+        10, // timeout in blocks,
         { value: START_VALUE }
     );
-    await MainContractInstance.setBombs(
+    await GameContractInstance.setBombs(
         BOMBS,
         { value: countPlacedBombs(BOMBS) * BOMB_COST }
     );
     await truffleAssert.reverts(
-        MainContractInstance.setBombs(
+        GameContractInstance.setBombs(
             BOMBS,
             { value: countPlacedBombs(BOMBS) * BOMB_COST }
         ),
@@ -95,81 +106,20 @@ it('Should disallow placing bombs twice', async function() {
 
 it('Should disallow bomber claim before timeout.', async function() {
     const shipsBuffer = shipsToBuffer(SHIPS);
-    const TIMEOUT = timestamp() + 5;
     const BOBMS_COST = countPlacedBombs(BOMBS) * BOMB_COST;
 
-    const MainContractInstance = await MainContract.new(
+    const GameContractInstance = await GameContract.new(
         sha256(shipsBuffer), // creation hash
         BOMB_COST, // bomb cost
-        TIMEOUT, // timeout,
+        120, // timeout in blocks,
         { value: START_VALUE }
     );
-    await MainContractInstance.setBombs(
+    await GameContractInstance.setBombs(
         BOMBS,
         { value: BOBMS_COST }
     );
-    await truffleAssert.reverts(MainContractInstance.claimBomberWin(), 'Timeout not reached yet.');
-    assert.ok(timestamp() <= TIMEOUT, 'Test took too much time... Try again!');
+    await truffleAssert.reverts(GameContractInstance.claimBomberWin(), 'Timeout not reached yet.');
 
-    const balance = await web3.eth.getBalance(MainContractInstance.address);
+    const balance = await web3.eth.getBalance(GameContractInstance.address);
     assert.equal(balance, parseInt(START_VALUE) + BOBMS_COST, 'Balance has changed!');
 });
-
-
-
-/*
-const script = async () => {
-    try {
-        
-
-        console.log('Game timeout:', TIMEOUT);
-        console.log('Ships buffer:', shipsBuffer);
-
-        try {
-
-        } catch (e) {
-            console.log('ERROR DURING CONTRACT CREATION!');
-            console.log(e);
-            return; // We can't do anything at this point...
-        }
-        
-        try {
-            await MainContractInstance.setBombs(
-                BOMBS,
-                // Transaction data...
-                { value: BOMB_COST * 100 }
-            );
-        } catch(e) {
-            console.log('ERROR WHILE SETTING BOMBS!');
-            console.log(e);
-        }
-        
-        let balanceBeforeClaim = await MainContractInstance.getBalance();
-        console.log('Balance before claim: ', balanceBeforeClaim.toNumber());
-        
-        try {
-            await MainContractInstance.claimCreatorWin(SHIPS, Buffer.from(SEED, 'ascii'));
-        } catch(e) {
-            console.log('CREATOR CLAIM FAILED!');
-        }
-
-        let balanceAfterCreatorClaim = await MainContractInstance.getBalance();
-        console.log('Balance after creator claim:', balanceAfterCreatorClaim.toNumber());
-        assert.equal(balanceAfterCreatorClaim.toNumber(), 0, 'Balance after creator claim is not right!');
-
-        try {
-            await MainContractInstance.claimBomberWin();
-        } catch(e) {
-            console.log('BOMBER CLAIM FAILED!');
-        }
-
-        let balanceAfterBomberClaim = await MainContractInstance.getBalance();
-        console.log('Balance after bomber claim:', balanceAfterBomberClaim.toNumber());
-    } catch(e) {
-        console.log('UNEXPECTED ERROR!');
-        console.log(e);
-    }
-}
-
-module.exports = script;
-*/

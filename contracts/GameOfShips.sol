@@ -9,7 +9,8 @@ contract GameOfShips {
     uint bombCost;
     address payable creator;
     address payable bomber = address(0);
-    uint timeout;
+    uint8 timeoutBlocks;
+    uint timeoutBlockNumber;
     
     struct Ship {
         uint8 beginX;
@@ -17,11 +18,14 @@ contract GameOfShips {
         bool vertical;
     }
     
-    constructor(bytes32 _creationHash, uint _bombCost, uint _timeout) public payable {
+    constructor(bytes32 _creationHash, uint _bombCost, uint8 _timeoutBlocks) public payable {
+        // TODO: Bomb cost constraints
+        require(_timeoutBlocks >= 10, "Minimum timeout is 10 blocks");
+        require(_timeoutBlocks <= 120, "Maximum timeout is 120 blocks");
         creator = msg.sender;
         creationHash = _creationHash;
         bombCost = _bombCost;
-        timeout = _timeout;
+        timeoutBlocks = _timeoutBlocks;
     }
     
     function setBombs(bool[10][10] memory _bombsBoard) public payable {
@@ -29,6 +33,7 @@ contract GameOfShips {
         require(msg.value >= getBombsCost(_bombsBoard), "Not enough wei sent.");
         bomber = msg.sender;
         bombsBoard = _bombsBoard;
+        timeoutBlockNumber = block.number + timeoutBlocks;
     }
     
     function getBombsCost(bool[10][10] memory _bombsBoard) private view returns(uint) {
@@ -59,8 +64,7 @@ contract GameOfShips {
     function claimBomberWin() public {
         require(bomber != address(0), "Bomber is not defined.");
         require(bomber == msg.sender, "Only bomber can call this function.");
-        // TODO: Use timeout in blocks! (not ts, since it's less secure)
-        require(now > timeout, "Timeout not reached yet.");
+        require(block.number > timeoutBlockNumber, "Timeout not reached yet.");
         bomber.transfer(address(this).balance);
     }
     
@@ -111,8 +115,8 @@ contract GameOfShipsFactory {
     constructor() public {
     }
 
-    function createGame(bytes32 _creationHash, uint _bombCost, uint _timeout) public payable {
-        GameOfShips newGameAddress = (new GameOfShips).value(msg.value)(_creationHash, _bombCost, _timeout);
+    function createGame(bytes32 _creationHash, uint _bombCost, uint8 _timeoutBlocks) public payable {
+        GameOfShips newGameAddress = (new GameOfShips).value(msg.value)(_creationHash, _bombCost, _timeoutBlocks);
         emit GameCreated(newGameAddress);
     }
 }

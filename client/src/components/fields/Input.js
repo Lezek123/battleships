@@ -105,7 +105,7 @@ export default class Input extends Component {
             <StyledInput
                 hasErrors={ errors.length ? true : false }
                 withUnit={ unit ? true : false }>
-                <Label for={ 'Input__' + name }>{ label }</Label>
+                <Label htmlFor={ 'Input__' + name }>{ label }</Label>
                 <FieldContainer>
                     <InputField
                         id={ 'Input__' + name }

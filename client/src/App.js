@@ -73,7 +73,7 @@ class App extends Component {
 		// TODO: EVENT WAS REMOVED FROM THE BLOCKCHAIN! HANDLE THAT
 	}
 
-	handleGameCreation = async ({ initialValue, bombCost, timeout, ships }) => {
+	handleGameCreation = async ({ initialValue, bombCost, timeoutBlocks, ships }) => {
 		if (!this.state.initialized) {
 			alert('Game factory not yet initialized!');
 			return;
@@ -84,14 +84,15 @@ class App extends Component {
 
 		try {
 			const gameHash = sha256(shipsToBuffer(ships, creationSeed));
-			// TODO: Timeout should be in blocks
-			const timeoutTs = (new Date(timeout)).getTime() / 1000;
+			bombCost = this.web3.utils.toWei(bombCost);
+			initialValue = this.web3.utils.toWei(initialValue);
+			timeoutBlocks = parseInt(timeoutBlocks);
 
 			const gameConstructorArgs = [
 				gameHash,
-				parseInt(bombCost),
-				timeoutTs,
-				{ from: creatorAddr, value: parseInt(initialValue) }
+				bombCost,
+				timeoutBlocks,
+				{ from: creatorAddr, value: initialValue }
 			];
 
 			console.log('Creating new game with args:', gameConstructorArgs);
@@ -103,7 +104,7 @@ class App extends Component {
 	render() {
 		return (
 			<StyledApp>
-				{ this.props.location.pathname !== '/' && <Nav fixed/> }
+				{ this.props.location.pathname !== '/' && <Nav fixed={1}/> }
 				<Switch>
 					<Route path={ CREATE_GAME_PATH }>
 						<CreateGameForm onSubmit={ this.handleGameCreation } />

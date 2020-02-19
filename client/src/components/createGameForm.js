@@ -25,7 +25,7 @@ export default class CreateGameForm extends Component {
         data: {
             initialValue: '0.01',
             bombCost: '0.0002',
-            timeout: '20',
+            timeoutBlocks: '20',
             ships: [],
         }
     }
@@ -81,11 +81,11 @@ export default class CreateGameForm extends Component {
                     <GameFormField>
                         <NumberInput
                             label="Timeout"
-                            name="timeout"
-                            value={ data.timeout }
+                            name="timeoutBlocks"
+                            value={ data.timeoutBlocks }
                             onChange={ this.onInputChange }
                             unit={ 'blocks' }
-                            min={ 5 }
+                            min={ 10 }
                             max={ 120 }
                             required={ true }
                             />

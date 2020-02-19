@@ -8,8 +8,7 @@ export async function initWeb3() {
             // Request account access
             await window.ethereum.enable();
         } catch (error) {
-            // User denied account access...
-            console.error("User denied account access");
+            alert('This website will not work properly unless you enable MetaMask access :(');
             return null;
         }
     }
@@ -19,8 +18,8 @@ export async function initWeb3() {
     }
     // If no injected web3 instance is detected, fall back to Ganache
     else {
-        // TODO: Actually: Display warning?
-        provider = new Web3.providers.HttpProvider('http://localhost:7545');
+        alert('You need MetaMask in order use this website!');
+        return null;
     }
 
     return new Web3(provider);
