@@ -5,6 +5,7 @@ import ethLogo from './images/eth-logo.png';
 import TruffleContract from "@truffle/contract";
 import { initWeb3 } from './helpers/web3';
 import CreateGameForm from './components/createGameForm';
+import GameOfShipsAbi from './contracts/GameOfShips.json';
 import GameOfShipsFactoryAbi from './contracts/GameOfShipsFactory.json';
 import { shipsToBuffer } from './helpers/converters';
 import { sha256 } from './helpers/hashing';
@@ -44,6 +45,10 @@ class App extends Component {
 		const GameOfShipsFactory = TruffleContract(GameOfShipsFactoryAbi);
 		GameOfShipsFactory.setProvider(this.web3.currentProvider);
 
+		const GameOfShips = TruffleContract(GameOfShipsAbi);
+		GameOfShips.setProvider(this.web3.currentProvider);
+
+		this._gameOfShipsContract = GameOfShips;
 		this._gameFactoryInstance = await GameOfShipsFactory.deployed();
 
 		// TODO: https://web3js.readthedocs.io/en/v1.2.0/web3-eth-contract.html#getpastevents ?
@@ -59,12 +64,24 @@ class App extends Component {
 		this.setState({ initialized: true });
 	}
 
-	processGameCreationEvent = (event) => {
+	processGameCreationEvent = async (event) => {
+		const gameAddress = event.args._gameAddress;
+		
+		const GameOfShipsInstance = await this._gameOfShipsContract.at(gameAddress);
+		const prizeWei = await GameOfShipsInstance.prize();
+		const bombCostWei = await GameOfShipsInstance.bombCost();
+		const joinTimeoutBlockNumber = await GameOfShipsInstance.joinTimeoutBlockNumber();
+		const revealTimeoutBlocks = await GameOfShipsInstance.revealTimeoutBlocks();
+
 		this.setState(
 			( { games } ) =>
 			( { games: [ ...games, {
 				creationTx: event.transactionHash,
-				gameAddress: event.args._gameAddress
+				contractInstance: GameOfShipsInstance,
+				prize: this.web3.utils.fromWei(prizeWei),
+				bombCost: this.web3.utils.fromWei(bombCostWei),
+				joinTimeoutBlockNumber: joinTimeoutBlockNumber.toNumber(),
+				revealTimeoutBlocks: revealTimeoutBlocks.toNumber(),
 			} ] } )
 		);
 	}
