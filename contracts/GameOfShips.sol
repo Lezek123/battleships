@@ -83,6 +83,7 @@ contract GameOfShips {
         creator.transfer(address(this).balance); // TODO: Maybe selfdestruct?
     }
     
+    // TODO: Force fixed seed length
     function getShipsHash(Ship[5] memory ships, bytes memory seed) private pure returns(bytes32) {
         bytes memory bytesToHash = new bytes(15 + seed.length);
         for (uint8 i = 0; i < 5; ++i) {

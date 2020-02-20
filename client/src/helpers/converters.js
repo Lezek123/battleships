@@ -3,7 +3,7 @@ export const shipsToBuffer = (ships, seed) => {
         let { x, y, vertical } = ship;
         return Buffer.from([x, y, vertical ? 1 : 0]);
     });
-    buffers.push(Buffer.from(seed, 'ascii'));
+    buffers.push(seed);
     return Buffer.concat(buffers);
 }
 

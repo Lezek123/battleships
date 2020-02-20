@@ -96,7 +96,8 @@ class App extends Component {
 			return;
 		}
 
-		const creationSeed = 'abc'; // TODO: Specify in form
+		let creationSeed = Buffer.alloc(32);
+		window.crypto.getRandomValues(creationSeed);
 		const creatorAddr = this.web3.currentProvider.selectedAddress;
 
 		try {
