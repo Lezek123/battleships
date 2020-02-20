@@ -2,28 +2,19 @@ import React, { Component } from 'react';
 import Board from './board';
 import styled, { css } from 'styled-components';
 import { centerFlex } from '../styles/basic';
+import { BasicButton } from './navigation/buttons';
 
 const StyledShipsBoard = styled.div`
     width: 100%;
+    padding: 20px;
+    border-radius: 20px;
+    background: #333;
+    margin-top: 10px;
     ${ centerFlex('column') };
 `;
 
 const ShipTypeSelect =  styled.div`
-    margin: 10px 0;
-`;
-
-const ShipTypeButton = styled.button`
-    border-radius: 20px;
-    padding: 10px 20px;
-    font-size: 16px;
-    margin: 5px;
-    border: 0;
-    background: ${ props => props.active ? '#000033 !important' : '#ccc' };
-    color: ${ props => props.active ? '#fff !important' : 'inherit' };
-    cursor: pointer;
-    &:hover {
-        background: #fff;
-    }
+    margin-bottom: 20px;
 `;
 
 export default class ShipsBoard extends Component {
@@ -70,9 +61,9 @@ export default class ShipsBoard extends Component {
                         const shipType = shipTypes[typeKey];
                         const active = selectedShipType.name === shipType.name;
                         return (
-                            <ShipTypeButton key={typeKey} active={ active } onClick={ (e) => this.changeType(e, shipType) }>
+                            <BasicButton key={typeKey} className={ active ? 'active' : '' } onClick={ (e) => this.changeType(e, shipType) }>
                                 { shipType.name }
-                            </ShipTypeButton>
+                            </BasicButton>
                         );
                     })}
                 </ShipTypeSelect>

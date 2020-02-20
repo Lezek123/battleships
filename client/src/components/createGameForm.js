@@ -4,6 +4,8 @@ import NumberInput from './fields/NumberInput';
 import Submit from './fields/Submit';
 import { centerFlex } from '../styles/basic';
 import styled from 'styled-components';
+import { Info as InfoIcon } from '@material-ui/icons';
+import color from '../constants/colors';
 
 const StyledGameFormContainer = styled.div`
     ${ centerFlex('column') }
@@ -20,6 +22,21 @@ const BigLabel = styled.label`
     font-size: 20px;
 `;
 
+const StyledFieldInfo = styled.div`
+    margin: 10px 0;
+    ${ centerFlex('row') };
+    color: ${ color.INFO_LIGHT };
+`;
+const FieldInfoIcon = styled(InfoIcon)`
+    margin-right: 5px;
+`;
+const FieldInfo = ({ text }) => (
+    <StyledFieldInfo>
+        <FieldInfoIcon />
+        { text }
+    </StyledFieldInfo>
+);
+
 export default class CreateGameForm extends Component {
     state = {
         data: {
@@ -27,28 +44,54 @@ export default class CreateGameForm extends Component {
             bombCost: '0.0002',
             timeoutBlocks: '20',
             ships: [],
+        },
+        validity: {
+            initialValue: true,
+            bombCost: true,
+            timeoutBlocks: true
         }
     }
-    onInputChange = (e, modifiedValue = null) => {
+
+    onInputChange = (e, modifiedValue = null, errors = []) => {
         const {target} = e;
         this.setState(
-            ({ data }) =>
-            ({ data: { ...data, [target.name]: modifiedValue || target.value } })
+            ({ data, validity }) => (
+                {
+                    data: { ...data, [target.name]: modifiedValue || target.value },
+                    validity: { ...validity, [target.name]: errors.length === 0 ? true : false }
+                }
+            )
         )
     }
+
     onShipPlacement = (ship) => {
+        const newShipsLength = this.state.data.ships.length + 1;
         this.setState(
-            ({ data }) =>
-            ({ data: { ...data, ships: [...data.ships, ship] } })
+            ({ data, validity }) => (
+                {
+                    data: { ...data, ships: [...data.ships, ship] },
+                    validity: { ...validity, ships: newShipsLength === 5 ? true : false }
+                }
+            ),
         );
     }
+
+    isValid = () => {
+        const { data, validity } = this.state;
+        return Object.keys(data).every(fieldName => validity[fieldName]);
+    }
+
     submit = (e) => {
         e.preventDefault();
         const { onSubmit } = this.props;
-        onSubmit(this.state.data);
+
+        if (this.isValid()) {
+            onSubmit(this.state.data);
+        }
     }
+
     render() {
-        const { data } = this.state;
+        const { data, validity } = this.state;
 
         return (
             <StyledGameFormContainer>
@@ -73,10 +116,14 @@ export default class CreateGameForm extends Component {
                             value={ data.bombCost }
                             onChange={ this.onInputChange }
                             unit={ 'ETH' }
-                            min={ 0.00001 }
-                            max={ 1 }
+                            min={ validity.initialValue ? data.initialValue / 100 : 0.00001 }
+                            max={ validity.initialValue ? data.initialValue / 26 : 1 }
                             required={ true }
                             />
+                            { (validity.initialValue && validity.bombCost) && (
+                                <FieldInfo
+                                    text= { `Placing more than ${ Math.ceil(data.initialValue / data.bombCost) - 1 } bombs will become unprofitable` } />
+                            ) }
                     </GameFormField>
                     <GameFormField>
                         <NumberInput
@@ -94,7 +141,7 @@ export default class CreateGameForm extends Component {
                         <BigLabel>Ships:</BigLabel>
                         <ShipsBoard onPlacement={ this.onShipPlacement } />
                     </GameFormField>
-                    <Submit text="Create game" />
+                    <Submit text="Create game" disabled={ !this.isValid() }/>
                 </GameForm>
             </StyledGameFormContainer>
         )

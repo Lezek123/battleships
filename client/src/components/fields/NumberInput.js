@@ -4,9 +4,9 @@ import Input from './Input';
 export default class NumberInput extends Component {
     state = { errors: [] };
 
-    onChange = (e) => {
+    onChange = (e, modifiedValue = null, passedErrors = []) => {
         const { onChange: originOnChange, min, max } = this.props;
-        let { target: { value } } = e;
+        let value = modifiedValue || e.target.value;
 
         value = value.replace(/[^0-9\.\,]/g, '');
         value = value.replace(',', '.');
@@ -17,7 +17,7 @@ export default class NumberInput extends Component {
 
         this.setState({ errors });
 
-        originOnChange(e, value);
+        originOnChange(e, value, passedErrors.concat(errors));
     }
 
     render() {
