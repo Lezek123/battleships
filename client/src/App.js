@@ -73,7 +73,7 @@ class App extends Component {
 		// TODO: EVENT WAS REMOVED FROM THE BLOCKCHAIN! HANDLE THAT
 	}
 
-	handleGameCreation = async ({ initialValue, bombCost, timeoutBlocks, ships }) => {
+	handleGameCreation = async ({ initialValue, bombCost, revealTimeoutBlocks, joinTimeoutBlocks, ships }) => {
 		if (!this.state.initialized) {
 			alert('Game factory not yet initialized!');
 			return;
@@ -86,12 +86,12 @@ class App extends Component {
 			const gameHash = sha256(shipsToBuffer(ships, creationSeed));
 			bombCost = this.web3.utils.toWei(bombCost);
 			initialValue = this.web3.utils.toWei(initialValue);
-			timeoutBlocks = parseInt(timeoutBlocks);
 
 			const gameConstructorArgs = [
 				gameHash,
 				bombCost,
-				timeoutBlocks,
+				revealTimeoutBlocks,
+				joinTimeoutBlocks,
 				{ from: creatorAddr, value: initialValue }
 			];
 

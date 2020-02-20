@@ -1,16 +1,19 @@
 pragma solidity ^0.5.0;
+// TODO: Try to eliminate the needf for it:
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/ownership/Secondary.sol";
 
 contract GameOfShips {
     bool[10][10] bombsBoard;
-    bytes32 private creationHash;
-    uint bombCost;
+    bytes32 creationHash;
+    uint public bombCost;
+    uint public prize;
     address payable creator;
     address payable bomber = address(0);
-    uint8 timeoutBlocks;
-    uint timeoutBlockNumber;
+    uint8 public revealTimeoutBlocks;
+    uint public joinTimeoutBlockNumber;
+    uint public revealTimeoutBlockNumber;
     
     struct Ship {
         uint8 beginX;
@@ -18,14 +21,19 @@ contract GameOfShips {
         bool vertical;
     }
     
-    constructor(bytes32 _creationHash, uint _bombCost, uint8 _timeoutBlocks) public payable {
-        // TODO: Bomb cost constraints
-        require(_timeoutBlocks >= 10, "Minimum timeout is 10 blocks");
-        require(_timeoutBlocks <= 120, "Maximum timeout is 120 blocks");
+    constructor(bytes32 _creationHash, uint _bombCost, uint8 _revealTimeoutBlocks, uint16 _joinTimeoutBlocks) public payable {
+        require(_revealTimeoutBlocks >= 10, "Minimum reveal timeout is 10 blocks"); // ~2m 20 sec (assuming 14 sec / block)
+        require(_revealTimeoutBlocks <= 120, "Maximum reveal timeout is 120 blocks"); // ~28m (assuming 14 sec / block)
+        require(_joinTimeoutBlocks >= 10, "Minimum join timeout is 10 blocks"); // ~2m 20 sec (assuming 14 sec / block)
+        require(_joinTimeoutBlocks <= 43200, "Maximum join timeout is 43200 blocks"); // ~7 days (assuming 14 sec / block)
+        // TODO: Bomb cost constraints?
+        // TODO: Initial value / prize constraints?
         creator = msg.sender;
         creationHash = _creationHash;
         bombCost = _bombCost;
-        timeoutBlocks = _timeoutBlocks;
+        prize = msg.value;
+        revealTimeoutBlocks = _revealTimeoutBlocks;
+        joinTimeoutBlockNumber = block.number + _joinTimeoutBlocks;
     }
     
     function setBombs(bool[10][10] memory _bombsBoard) public payable {
@@ -33,7 +41,7 @@ contract GameOfShips {
         require(msg.value >= getBombsCost(_bombsBoard), "Not enough wei sent.");
         bomber = msg.sender;
         bombsBoard = _bombsBoard;
-        timeoutBlockNumber = block.number + timeoutBlocks;
+        revealTimeoutBlockNumber = block.number + revealTimeoutBlocks;
     }
     
     function getBombsCost(bool[10][10] memory _bombsBoard) private view returns(uint) {
@@ -48,6 +56,12 @@ contract GameOfShips {
         
         return bombsCost;
     }
+
+    function claimJoinTimeoutReturn() public {
+        require(block.number > joinTimeoutBlockNumber, "Timeout not reached yet.");
+        require(bomber == address(0), "The game already started.");
+        creator.transfer(address(this).balance);
+    }
     
     function claimCreatorWin(Ship[5] memory ships, bytes memory seed) public {
         require(getShipsHash(ships, seed) == creationHash, "Invalid hash provided.");
@@ -58,14 +72,15 @@ contract GameOfShips {
             }
         }
         require(allShipsDestroyed == false, "Creator is not a winner.");
-        creator.transfer(address(this).balance);
+        creator.transfer(address(this).balance); // TODO: Maybe selfdestruct?
     }
     
     function claimBomberWin() public {
         require(bomber != address(0), "Bomber is not defined.");
         require(bomber == msg.sender, "Only bomber can call this function.");
-        require(block.number > timeoutBlockNumber, "Timeout not reached yet.");
-        bomber.transfer(address(this).balance);
+        require(block.number > revealTimeoutBlockNumber, "Timeout not reached yet.");
+        bomber.transfer(prize);
+        creator.transfer(address(this).balance); // TODO: Maybe selfdestruct?
     }
     
     function getShipsHash(Ship[5] memory ships, bytes memory seed) private pure returns(bytes32) {
@@ -115,8 +130,8 @@ contract GameOfShipsFactory {
     constructor() public {
     }
 
-    function createGame(bytes32 _creationHash, uint _bombCost, uint8 _timeoutBlocks) public payable {
-        GameOfShips newGameAddress = (new GameOfShips).value(msg.value)(_creationHash, _bombCost, _timeoutBlocks);
+    function createGame(bytes32 _creationHash, uint _bombCost, uint8 _revealTimeoutBlocks, uint16 _joinTimeoutBlocks) public payable {
+        GameOfShips newGameAddress = (new GameOfShips).value(msg.value)(_creationHash, _bombCost, _revealTimeoutBlocks, _joinTimeoutBlocks);
         emit GameCreated(newGameAddress);
     }
 }

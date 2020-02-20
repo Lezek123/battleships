@@ -6,6 +6,7 @@ import { centerFlex } from '../styles/basic';
 import styled from 'styled-components';
 import { Info as InfoIcon } from '@material-ui/icons';
 import color from '../constants/colors';
+import { secondsToStringInterval } from '../helpers/converters';
 
 const StyledGameFormContainer = styled.div`
     ${ centerFlex('column') }
@@ -26,6 +27,7 @@ const StyledFieldInfo = styled.div`
     margin: 10px 0;
     ${ centerFlex('row') };
     color: ${ color.INFO_LIGHT };
+    font-size: 14px;
 `;
 const FieldInfoIcon = styled(InfoIcon)`
     margin-right: 5px;
@@ -42,13 +44,15 @@ export default class CreateGameForm extends Component {
         data: {
             initialValue: '0.01',
             bombCost: '0.0002',
-            timeoutBlocks: '20',
+            joinTimeoutBlocks: '20',
+            revealTimeoutBlocks: '20',
             ships: [],
         },
         validity: {
             initialValue: true,
             bombCost: true,
-            timeoutBlocks: true
+            joinTimeoutBlocks: true,
+            revealTimeoutBlocks: true
         }
     }
 
@@ -127,15 +131,35 @@ export default class CreateGameForm extends Component {
                     </GameFormField>
                     <GameFormField>
                         <NumberInput
-                            label="Timeout"
-                            name="timeoutBlocks"
-                            value={ data.timeoutBlocks }
+                            label="Reveal timeout"
+                            name="revealTimeoutBlocks"
+                            value={ data.revealTimeoutBlocks }
                             onChange={ this.onInputChange }
                             unit={ 'blocks' }
                             min={ 10 }
                             max={ 120 }
                             required={ true }
                             />
+                            { (validity.revealTimeoutBlocks) && (
+                                <FieldInfo
+                                    text= { `For 14s per block it's ` + secondsToStringInterval(data.revealTimeoutBlocks * 14) } />
+                            ) }
+                    </GameFormField>
+                    <GameFormField>
+                        <NumberInput
+                                label="Join timeout"
+                                name="joinTimeoutBlocks"
+                                value={ data.joinTimeoutBlocks }
+                                onChange={ this.onInputChange }
+                                unit={ 'blocks' }
+                                min={ 10 }
+                                max={ 43200 }
+                                required={ true }
+                                />
+                        { (validity.joinTimeoutBlocks) && (
+                            <FieldInfo
+                                text= { `For 14s per block it's ` + secondsToStringInterval(data.joinTimeoutBlocks * 14) } />
+                        ) }
                     </GameFormField>
                     <GameFormField>
                         <BigLabel>Ships:</BigLabel>
