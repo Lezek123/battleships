@@ -4,9 +4,8 @@ import NumberInput from './fields/NumberInput';
 import Submit from './fields/Submit';
 import { centerFlex } from '../styles/basic';
 import styled from 'styled-components';
-import { Info as InfoIcon } from '@material-ui/icons';
-import color from '../constants/colors';
 import { secondsToStringInterval } from '../helpers/converters';
+import { FormField, BigLabel, FieldInfo } from './fields/formFields';
 
 const StyledGameFormContainer = styled.div`
     ${ centerFlex('column') }
@@ -14,30 +13,6 @@ const StyledGameFormContainer = styled.div`
 const GameForm = styled.form`
     ${ centerFlex('column') }
 `;
-const GameFormField = styled.div`
-    width: 100%;
-    ${ centerFlex('column') };
-`;
-const BigLabel = styled.label`
-    margin-top: 10px;
-    font-size: 20px;
-`;
-
-const StyledFieldInfo = styled.div`
-    margin: 10px 0;
-    ${ centerFlex('row') };
-    color: ${ color.INFO_LIGHT };
-    font-size: 14px;
-`;
-const FieldInfoIcon = styled(InfoIcon)`
-    margin-right: 5px;
-`;
-const FieldInfo = ({ text }) => (
-    <StyledFieldInfo>
-        <FieldInfoIcon />
-        { text }
-    </StyledFieldInfo>
-);
 
 export default class CreateGameForm extends Component {
     state = {
@@ -99,9 +74,9 @@ export default class CreateGameForm extends Component {
 
         return (
             <StyledGameFormContainer>
-                <h2>Create a game</h2>
+                <h1>Create a game</h1>
                 <GameForm onSubmit={ this.submit }>
-                    <GameFormField>
+                    <FormField>
                         <NumberInput
                             label="Initial value"
                             name="initialValue"
@@ -112,8 +87,8 @@ export default class CreateGameForm extends Component {
                             max={ 1 }
                             required={ true }
                             />
-                    </GameFormField>
-                    <GameFormField>
+                    </FormField>
+                    <FormField>
                         <NumberInput
                             label="Bomb cost"
                             name="bombCost"
@@ -128,8 +103,8 @@ export default class CreateGameForm extends Component {
                                 <FieldInfo
                                     text= { `Placing more than ${ Math.ceil(data.initialValue / data.bombCost) - 1 } bombs will become unprofitable` } />
                             ) }
-                    </GameFormField>
-                    <GameFormField>
+                    </FormField>
+                    <FormField>
                         <NumberInput
                             label="Reveal timeout"
                             name="revealTimeoutBlocks"
@@ -144,8 +119,8 @@ export default class CreateGameForm extends Component {
                                 <FieldInfo
                                     text= { `For 14s per block it's ` + secondsToStringInterval(data.revealTimeoutBlocks * 14) } />
                             ) }
-                    </GameFormField>
-                    <GameFormField>
+                    </FormField>
+                    <FormField>
                         <NumberInput
                                 label="Join timeout"
                                 name="joinTimeoutBlocks"
@@ -160,11 +135,11 @@ export default class CreateGameForm extends Component {
                             <FieldInfo
                                 text= { `For 14s per block it's ` + secondsToStringInterval(data.joinTimeoutBlocks * 14) } />
                         ) }
-                    </GameFormField>
-                    <GameFormField>
+                    </FormField>
+                    <FormField>
                         <BigLabel>Ships:</BigLabel>
                         <ShipsBoard onPlacement={ this.onShipPlacement } />
-                    </GameFormField>
+                    </FormField>
                     <Submit text="Create game" disabled={ !this.isValid() }/>
                 </GameForm>
             </StyledGameFormContainer>

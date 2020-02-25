@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/ownership/Secondary.sol";
 
 contract GameOfShips {
-    bool[10][10] bombsBoard;
+    bool[10][10] public bombsBoard;
     bytes32 creationHash;
     uint public bombCost;
     uint public prize;
@@ -38,10 +38,17 @@ contract GameOfShips {
     
     function setBombs(bool[10][10] memory _bombsBoard) public payable {
         require(bomber == address(0), "Bomber already defined.");
-        require(msg.value >= getBombsCost(_bombsBoard), "Not enough wei sent.");
+        uint bombsCost = getBombsCost(_bombsBoard);
+        require(msg.value >= bombsCost, "Not enough wei sent.");
+        // bombsCost / bombCost = number of bombs placed (this way we don't need to run the loops again)
+        require(bombsCost / bombCost >= 25, "You need to place at least 25 bombs.");
         bomber = msg.sender;
         bombsBoard = _bombsBoard;
         revealTimeoutBlockNumber = block.number + revealTimeoutBlocks;
+    }
+
+    function getBombs() public view returns(bool[10][10] memory) {
+        return bombsBoard;
     }
     
     function getBombsCost(bool[10][10] memory _bombsBoard) private view returns(uint) {

@@ -38,7 +38,8 @@ const BoardField = styled.div`
 export default class Board extends Component {
     state = {
         board: null,
-        selectedFields: [] // TODO: Maybe change to "placedObjects" with x, y, objectXLength and objectYLength?
+        placementPossible: false,
+        placedObjects: []
     }
 
     fieldStates = {
@@ -60,19 +61,19 @@ export default class Board extends Component {
 
     initBoard() {
         const {xSize, ySize} = this.props;
-        const board = Array.from(Array(ySize)).map(row =>
+        const board = Array.from(Array(ySize)).map(rows =>
             Array.from(Array(xSize)).map(field => this.fieldStates.default)
         );
         this.setState({ board });
     }
 
     handleFieldHover = (hoveredY, hoveredX) => {
-        let { board, selectedFields } = this.state;
+        let { board, placedObjects } = this.state;
         const { maxObjects } = this.props;
         const { fieldStates } = this;
 
-        if (selectedFields.length >= maxObjects) return;
-
+        if (placedObjects.length >= maxObjects) return;
+        
         const { objectXSize, objectYSize, xSize, ySize } = this.props;
 
         // Change all non-active fields status to default
@@ -85,25 +86,30 @@ export default class Board extends Component {
         }
         // Change "hovered" fields to "impossible" if there are less hovered fields than objectXSize * objectYSize
         const hoveredFieldsLen = board.reduce((a, b) => a + b.filter(field => field === fieldStates.hovered).length, 0);
-        if (hoveredFieldsLen < objectXSize * objectYSize) {
+        const placementPossible = hoveredFieldsLen === objectXSize * objectYSize;
+        if (!placementPossible) {
             board = board.map(row => row.map(field => field === fieldStates.hovered ? fieldStates.impossible : field ));
         }
 
-        this.setState({ board });
+        this.setState({ board, placementPossible });
     }
 
     handleFieldClick = (clickedY, clickedX) => {
-        let { board, selectedFields } = this.state;
+        let { board, placedObjects, placementPossible } = this.state;
         const { maxObjects, onPlacement } = this.props;
         const { fieldStates } = this;
 
-        if (selectedFields.length >= maxObjects) return;
+        if (!placementPossible) return;
+
+        this.setState({ placementPossible: false });
+
+        if (placedObjects.length >= maxObjects) return;
 
         board = board.map(row =>
             row.map(fieldState => fieldState === fieldStates.hovered ? fieldStates.active : fieldState)
         );
 
-        this.setState({ board, selectedFields: [ ...selectedFields, { x: clickedX, y: clickedY } ] });
+        this.setState({ board, placedObjects: [ ...placedObjects, { x: clickedX, y: clickedY } ] });
         if (onPlacement) onPlacement({ x: clickedX, y: clickedY });
     }
 

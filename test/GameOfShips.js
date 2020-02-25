@@ -21,7 +21,7 @@ const DEFAULT_SHIPS = [
 const DEFAULT_BOMBS = [
     [1, 1, 1, 1, 1, 0, 0, 1, 1, 1],
     [0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
-    [0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
     [0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
     [0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -87,7 +87,7 @@ const untilBlock = (expectedBlockNumber, timeoutSec = 60) => new Promise(async (
                 resolve();
             }
         },
-        1000
+        100
     );
 });
 
@@ -167,4 +167,24 @@ it('Should disallow caliming join timeout return after the game has started.', a
     );
 
     await truffleAssert.reverts(game.claimJoinTimeoutReturn(), 'The game already started.');
+});
+
+it('Should disallow placing less than 25 bombs', async function() {
+    const game = await initGameContract();
+    // Create 2-dimensional array of "false"
+    const bombsBoard = Array.from(Array(10)).map(() => Array.from(Array(10)).map(() => false));
+    // Place 24 bombs randomly on the board
+    for (i=0; i<24; ++i) {
+        let x, y;
+        do {
+            x = Math.floor(Math.random() * 10);
+            y = Math.floor(Math.random() * 10);
+        } while (bombsBoard[x][y]);
+        bombsBoard[x][y] = true;
+    }
+
+    await truffleAssert.reverts(
+        game.setBombs(bombsBoard, { value: 24 * DEFAULT_BOMB_COST }),
+        'You need to place at least 25 bombs.'
+    );
 });

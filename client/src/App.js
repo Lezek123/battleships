@@ -3,7 +3,7 @@ import React, { Component } from 'react';
 // import store from './redux/store';
 import ethLogo from './images/eth-logo.png';
 import TruffleContract from "@truffle/contract";
-import { initWeb3 } from './helpers/web3';
+import { getWeb3 } from './helpers/web3';
 import CreateGameForm from './components/createGameForm';
 import GameOfShipsAbi from './contracts/GameOfShips.json';
 import GameOfShipsFactoryAbi from './contracts/GameOfShipsFactory.json';
@@ -13,8 +13,10 @@ import GamesList from './components/gamesList';
 import Nav from './components/navigation/Nav';
 import { Switch, Route, withRouter } from 'react-router-dom';
 import styled, { css } from 'styled-components';
-import { CREATE_GAME_PATH, GAMES_LIST_PATH } from './constants/routes';
+import { CREATE_GAME_PATH, GAMES_LIST_PATH, GAME_PATH } from './constants/routes';
 import { centerFlex } from './styles/basic';
+import JoinedGame from './components/joinedGame';
+import { fetchGameContractData } from './helpers/contracts';
 
 const StyledApp = styled.div`
 	background-color: #282c34;
@@ -40,7 +42,7 @@ class App extends Component {
 	}
 
 	async componentWillMount() {
-		this.web3 = await initWeb3();
+		this.web3 = await getWeb3();
 
 		const GameOfShipsFactory = TruffleContract(GameOfShipsFactoryAbi);
 		GameOfShipsFactory.setProvider(this.web3.currentProvider);
@@ -48,7 +50,6 @@ class App extends Component {
 		const GameOfShips = TruffleContract(GameOfShipsAbi);
 		GameOfShips.setProvider(this.web3.currentProvider);
 
-		this._gameOfShipsContract = GameOfShips;
 		this._gameFactoryInstance = await GameOfShipsFactory.deployed();
 
 		// TODO: https://web3js.readthedocs.io/en/v1.2.0/web3-eth-contract.html#getpastevents ?
@@ -66,22 +67,19 @@ class App extends Component {
 
 	processGameCreationEvent = async (event) => {
 		const gameAddress = event.args._gameAddress;
-		
-		const GameOfShipsInstance = await this._gameOfShipsContract.at(gameAddress);
-		const prizeWei = await GameOfShipsInstance.prize();
-		const bombCostWei = await GameOfShipsInstance.bombCost();
-		const joinTimeoutBlockNumber = await GameOfShipsInstance.joinTimeoutBlockNumber();
-		const revealTimeoutBlocks = await GameOfShipsInstance.revealTimeoutBlocks();
+
+		const contractData = await fetchGameContractData(gameAddress);
 
 		this.setState(
 			( { games } ) =>
 			( { games: [ ...games, {
 				creationTx: event.transactionHash,
-				contractInstance: GameOfShipsInstance,
-				prize: this.web3.utils.fromWei(prizeWei),
-				bombCost: this.web3.utils.fromWei(bombCostWei),
-				joinTimeoutBlockNumber: joinTimeoutBlockNumber.toNumber(),
-				revealTimeoutBlocks: revealTimeoutBlocks.toNumber(),
+				address: gameAddress,
+				prize: contractData.prize,
+				bombCost: contractData.bombCost,
+				joinTimeoutBlockNumber: contractData.joinTimeoutBlockNumber,
+				revealTimeoutBlocks: contractData.revealTimeoutBlocks,
+				bombsBoard: contractData.bombsBoard
 			} ] } )
 		);
 	}
@@ -124,6 +122,9 @@ class App extends Component {
 			<StyledApp>
 				{ this.props.location.pathname !== '/' && <Nav fixed={1}/> }
 				<Switch>
+					<Route path={ GAME_PATH } render={ props => {
+						return <JoinedGame address={props.match.params.id} />;
+					 } } />
 					<Route path={ CREATE_GAME_PATH }>
 						<CreateGameForm onSubmit={ this.handleGameCreation } />
 					</Route>
