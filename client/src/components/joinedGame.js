@@ -17,6 +17,19 @@ const AttackForm = styled.form`
     width: 100%;
     ${ centerFlex('column') }
 `;
+const PlacedBombsSummary = styled.div`
+    margin-top: 20px;
+`;
+const SummaryRow = styled.div`
+    display: flex;
+    width: 250px;
+    justify-content: space-between;
+`;
+const SummaryName = styled.div`
+    font-weight: bold;
+`;
+const SummaryValue = styled.div`
+`;
 
 export default class JoinedGame extends Component {
     state = {
@@ -72,11 +85,20 @@ export default class JoinedGame extends Component {
                     <FormField>
                         <Board xSize={10} ySize={10} objectXSize={1} objectYSize={1} onPlacement={ this.onBombPlacement }/>
                         { contractData && (
-                            <div>
-                                <div>Bombs placed: { placedBombs.length }</div>
-                                <div>Total bombs cost: { round(placedBombs.length * contractData.bombCost, 8) } ETH</div>
-                                <div>Winning reward: { round(contractData.prize - placedBombs.length * contractData.bombCost, 8) } ETH</div>
-                            </div>
+                            <PlacedBombsSummary>
+                                <SummaryRow>
+                                    <SummaryName>Bombs placed:</SummaryName>
+                                    <SummaryValue>{ placedBombs.length }</SummaryValue>
+                                </SummaryRow>
+                                <SummaryRow>
+                                    <SummaryName>Total bombs cost:</SummaryName>
+                                    <SummaryValue>{ round(placedBombs.length * contractData.bombCost, 8) } ETH</SummaryValue>
+                                </SummaryRow>
+                                <SummaryRow>
+                                    <SummaryName>Winning reward:</SummaryName>
+                                    <SummaryValue>{ round(contractData.prize - placedBombs.length * contractData.bombCost, 8) } ETH</SummaryValue>
+                                </SummaryRow>
+                            </PlacedBombsSummary>
                         ) }
                         { !this.isAttackValid() && <FieldInfo text={ `You have to place at least 25 bombs` } /> }
                     </FormField>
