@@ -38,10 +38,11 @@ export default class GamePreviewBox extends Component {
         const { game } = this.props;
         return (
             <StyledGamePreviewBox>
-                <GameDataRow dataName={'Prize'} dataVal={game.prize} unit={'ETH'} />
-                <GameDataRow dataName={'Bomb cost'} dataVal={game.bombCost} unit={'ETH'}/>
-                <GameDataRow dataName={'Join timeout block'} dataVal={game.joinTimeoutBlockNumber} />
-                <GameDataRow dataName={'Reveal timeout'} dataVal={game.revealTimeoutBlocks} unit={'blocks'}/>
+                <GameDataRow dataName={'Prize'} dataVal={game.data.prize} unit={'ETH'} />
+                <GameDataRow dataName={'Bomb cost'} dataVal={game.data.bombCost} unit={'ETH'}/>
+                <GameDataRow dataName={'Join timeout block'} dataVal={game.data.joinTimeoutBlockNumber} />
+                <GameDataRow dataName={'Reveal timeout'} dataVal={game.data.revealTimeoutBlocks} unit={'blocks'}/>
+                <GameDataRow dataName={'Status'} dataVal={ game.data.bomberAddr ? 'PENDING' : 'NEW' }/>
                 <JoinButton theme={ themes.primary } as={ Link } to={ generateGamePath(game.address) }>JOIN</JoinButton>
             </StyledGamePreviewBox>
         )

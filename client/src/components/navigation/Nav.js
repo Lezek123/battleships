@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import styled, { css } from 'styled-components';
 import { NavLink } from 'react-router-dom';
-import { CREATE_GAME_PATH, GAMES_LIST_PATH } from '../../constants/routes';
+import { CREATE_GAME_PATH, GAMES_LIST_PATH, MY_GAMES_PATH } from '../../constants/routes';
 import { BigButton } from './buttons';
 
 const StyledNav = styled.nav`
@@ -53,6 +53,7 @@ export default class Nav extends Component {
                 { fixed && this.renderLink('/', 'Homepage') }
                 { this.renderLink(CREATE_GAME_PATH, 'Create a game') }
                 { this.renderLink(GAMES_LIST_PATH, 'Games list') }
+                { fixed && this.renderLink(MY_GAMES_PATH, 'My games') }
             </StyledNav>
         )
     }

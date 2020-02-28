@@ -20,6 +20,7 @@ const BoardGrid = styled.div`
     row-gap: 1px;
     grid-template-rows: ${ props => props.board.map(() => '1fr').join(' ') };
     grid-template-columns: ${ props => props.board[0].map(() => '1fr').join(' ') };
+    opacity: ${ props => props.locked ? 0.7 : 1 };
 `;
 
 const boardFieldColors = {
@@ -28,10 +29,16 @@ const boardFieldColors = {
     impossible: '#ffcccc',
     active: '#00ff00',
 };
+const boardFieldCursors = {
+    default: 'initial',
+    hovered: 'pointer',
+    impossible: 'not-allowed',
+    active: 'initial'
+}
 const BoardField = styled.div`
     width: 100%;
     height: 100%;
-    cursor: pointer;
+    cursor: ${ props => props.locked ? 'not-allowed' : boardFieldCursors[props.fieldState] };
     background: ${ props => boardFieldColors[props.fieldState] };
 `;
 
@@ -53,26 +60,47 @@ export default class Board extends Component {
         this.initBoard();
     }
 
-    componentWillUpdate(nextProps, nextState) {
-        if (nextProps.xSize !== this.props.xSize || nextProps.ySize !== this.props.ySize) {
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps.xSize !== this.props.xSize
+            || prevProps.ySize !== this.props.ySize
+            || JSON.stringify(prevProps.lockedObjects) !== JSON.stringify(this.props.lockedObjects)
+        ) {
             this.initBoard();
         }
     }
 
+    objectContainsField(object, fieldCoordinates) {
+        const { objectXSize, objectYSize } = this.props;
+        // Provided objects may have different dimensions than current (fetched from props)
+        object.xSize = object.xSize || objectXSize;
+        object.ySize = object.ySize || objectYSize;
+        return (
+            fieldCoordinates.x >= object.x
+            && fieldCoordinates.x < object.x + object.xSize
+            && fieldCoordinates.y >= object.y
+            && fieldCoordinates.y < object.y + object.ySize
+        );
+    }
+
     initBoard() {
-        const {xSize, ySize} = this.props;
-        const board = Array.from(Array(ySize)).map(rows =>
-            Array.from(Array(xSize)).map(field => this.fieldStates.default)
+        const { xSize, ySize, lockedObjects } = this.props;
+        const board = Array.from(Array(ySize)).map((rows, y) =>
+            Array.from(Array(xSize)).map((field, x) => (
+                lockedObjects && lockedObjects.some(object => this.objectContainsField(object, {x, y})) ?
+                    this.fieldStates.active
+                    : this.fieldStates.default
+            ))
         );
         this.setState({ board });
     }
 
     handleFieldHover = (hoveredY, hoveredX) => {
         let { board, placedObjects } = this.state;
-        const { maxObjects } = this.props;
+        const { maxObjects, lockedObjects } = this.props;
         const { fieldStates } = this;
 
-        if (placedObjects.length >= maxObjects) return;
+        if (placedObjects.length >= maxObjects || lockedObjects) return;
         
         const { objectXSize, objectYSize, xSize, ySize } = this.props;
 
@@ -114,17 +142,19 @@ export default class Board extends Component {
     }
 
     render() {
+        const locked = this.props.lockedObjects ? true : false;
         const { board } = this.state; 
         return (
             <BoardContainer>
-                <BoardGrid board={ board}>
+                <BoardGrid board={board} locked={ locked }>
                     { board.map((row, rowKey) => (
                         row.map((fieldState, fieldKey) => (
                             <BoardField
                                 key={fieldKey}
                                 fieldState={ fieldState }
                                 onMouseOver={ () => this.handleFieldHover(rowKey, fieldKey) }
-                                onClick={ () => this.handleFieldClick(rowKey, fieldKey) } />
+                                onClick={ () => this.handleFieldClick(rowKey, fieldKey) }
+                                locked={ locked }/>
                         ))
                     )) }
                 </BoardGrid>

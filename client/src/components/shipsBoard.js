@@ -5,6 +5,7 @@ import { centerFlex } from '../styles/basic';
 import { BasicButton } from './navigation/buttons';
 
 const StyledShipsBoard = styled.div`
+    box-sizing: border-box;
     width: 100%;
     padding: 20px;
     border-radius: 20px;
@@ -35,6 +36,20 @@ export default class ShipsBoard extends Component {
         const { shipTypes } = this;
         this.state = { shipType: shipTypes.vertical, placedShips: [] }; 
     }
+    getLockedObjects = () => {
+        let { lockedObjects = null, lockedShips } = this.props;
+
+        if (lockedShips) {
+            lockedObjects = lockedShips.map(
+                ({ x, y, vertical }) => {
+                    const shipType = this.shipTypes[vertical ? 'vertical' : 'horizontal'];
+                    return { x, y, xSize: shipType.objectXSize, ySize: shipType.objectYSize }
+                }
+            );
+        }
+
+        return lockedObjects;
+    }
     changeType = (e, shipType) => {
         e.preventDefault();
         this.setState({ shipType });
@@ -54,25 +69,29 @@ export default class ShipsBoard extends Component {
     render() {
         const { shipTypes } = this;
         const { shipType: selectedShipType } = this.state;
+        const lockedObjects = this.getLockedObjects();
         return (
             <StyledShipsBoard>
-                <ShipTypeSelect>
-                    { Object.keys(shipTypes).map(typeKey => {
-                        const shipType = shipTypes[typeKey];
-                        const active = selectedShipType.name === shipType.name;
-                        return (
-                            <BasicButton key={typeKey} className={ active ? 'active' : '' } onClick={ (e) => this.changeType(e, shipType) }>
-                                { shipType.name }
-                            </BasicButton>
-                        );
-                    })}
-                </ShipTypeSelect>
+                { !lockedObjects && (
+                    <ShipTypeSelect>
+                        { Object.keys(shipTypes).map(typeKey => {
+                            const shipType = shipTypes[typeKey];
+                            const active = selectedShipType.name === shipType.name;
+                            return (
+                                <BasicButton key={typeKey} className={ active ? 'active' : '' } onClick={ (e) => this.changeType(e, shipType) }>
+                                    { shipType.name }
+                                </BasicButton>
+                            );
+                        })}
+                    </ShipTypeSelect>
+                ) }
                 <Board
                     xSize={10}
                     ySize={10}
                     objectXSize={selectedShipType.objectXSize}
                     objectYSize={selectedShipType.objectYSize}
                     maxObjects={5}
+                    lockedObjects={ lockedObjects }
                     onPlacement={ this.handlePlacement } />
             </StyledShipsBoard>
         )

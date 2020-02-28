@@ -9,6 +9,7 @@ import { FormField, BigLabel, FieldInfo } from './fields/formFields';
 
 const StyledGameFormContainer = styled.div`
     ${ centerFlex('column') }
+    width: 550px;
 `;
 const GameForm = styled.form`
     ${ centerFlex('column') }
@@ -32,6 +33,7 @@ export default class CreateGameForm extends Component {
     }
 
     onInputChange = (e, modifiedValue = null, errors = []) => {
+        // FIXME: Cross-validity between initialValue and bombCost!
         const {target} = e;
         this.setState(
             ({ data, validity }) => (

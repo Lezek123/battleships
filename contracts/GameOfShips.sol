@@ -6,11 +6,11 @@ import "@openzeppelin/contracts/ownership/Secondary.sol";
 
 contract GameOfShips {
     bool[10][10] public bombsBoard;
-    bytes32 creationHash;
+    bytes32 public creationHash;
     uint public bombCost;
     uint public prize;
-    address payable creator;
-    address payable bomber = address(0);
+    address payable public creator;
+    address payable public bomber = address(0);
     uint8 public revealTimeoutBlocks;
     uint public joinTimeoutBlockNumber;
     uint public revealTimeoutBlockNumber;
@@ -21,14 +21,21 @@ contract GameOfShips {
         bool vertical;
     }
     
-    constructor(bytes32 _creationHash, uint _bombCost, uint8 _revealTimeoutBlocks, uint16 _joinTimeoutBlocks) public payable {
+    constructor(
+        address payable _creatorAddress,
+        bytes32 _creationHash,
+        uint _bombCost,
+        uint8 _revealTimeoutBlocks,
+        uint16 _joinTimeoutBlocks
+    ) public payable {
         require(_revealTimeoutBlocks >= 10, "Minimum reveal timeout is 10 blocks"); // ~2m 20 sec (assuming 14 sec / block)
         require(_revealTimeoutBlocks <= 120, "Maximum reveal timeout is 120 blocks"); // ~28m (assuming 14 sec / block)
         require(_joinTimeoutBlocks >= 10, "Minimum join timeout is 10 blocks"); // ~2m 20 sec (assuming 14 sec / block)
         require(_joinTimeoutBlocks <= 43200, "Maximum join timeout is 43200 blocks"); // ~7 days (assuming 14 sec / block)
+        // FIXME: Can only be called from factory! (Otherwise we cannot provide creator address this way...)
         // TODO: Bomb cost constraints?
         // TODO: Initial value / prize constraints?
-        creator = msg.sender;
+        creator = _creatorAddress;
         creationHash = _creationHash;
         bombCost = _bombCost;
         prize = msg.value;
@@ -133,13 +140,15 @@ contract GameOfShips {
 }
 
 contract GameOfShipsFactory {
-    event GameCreated(GameOfShips _gameAddress);
+    event GameCreated(GameOfShips _gameAddress, address _creator);
     
     constructor() public {
     }
 
     function createGame(bytes32 _creationHash, uint _bombCost, uint8 _revealTimeoutBlocks, uint16 _joinTimeoutBlocks) public payable {
-        GameOfShips newGameAddress = (new GameOfShips).value(msg.value)(_creationHash, _bombCost, _revealTimeoutBlocks, _joinTimeoutBlocks);
-        emit GameCreated(newGameAddress);
+        GameOfShips newGameAddress = (new GameOfShips)
+            .value(msg.value)
+            (msg.sender, _creationHash, _bombCost, _revealTimeoutBlocks, _joinTimeoutBlocks);
+        emit GameCreated(newGameAddress, msg.sender);
     }
 }

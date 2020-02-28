@@ -4,6 +4,8 @@ const crypto = require('crypto');
 const assert = require('assert');
 const truffleAssert = require('truffle-assertions');
 const BN = web3.utils.BN;
+const { sha256 } = require('../helpers/hashing');
+const { shipsToBuffer } = require('../helpers/converters');
 
 // Defaults
 const DEFAULT_INIT_VALUE = web3.utils.toWei('0.001', 'ether');
@@ -32,17 +34,6 @@ const DEFAULT_BOMBS = [
 ];
 
 // Functions
-const sha256 = (string) => crypto.createHash('sha256').update(string).digest();
-
-const shipsToBuffer = (ships, seed = DEFAULT_SEED) => {
-    let buffers = ships.map(ship => {
-        let [ beginX, beginY, vertical ] = ship;
-        return Buffer.from([beginX, beginY, vertical ? 1 : 0]);
-    });
-    buffers.push(Buffer.from(seed, 'ascii'));
-    return Buffer.concat(buffers);
-}
-
 const countPlacedBombs = (bombs) => {
     return bombs.reduce((a, b) => a + b.filter(bomb => bomb).length, 0);
 }
