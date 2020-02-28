@@ -42,6 +42,18 @@ const BoardField = styled.div`
     background: ${ props => boardFieldColors[props.fieldState] };
 `;
 
+// Compares two boards and returns array of information wether given field is "true" on both of them, one of them or none of them
+export function compareBoards(board1, board2) {
+    return board1.map((row, y) =>
+        row.map((field, x) => {
+            if (board1[y][x] && board2[y][x]) return 'ab';
+            else if (board1[y][x]) return 'a';
+            else if (board2[y][x]) return 'b';
+            else return '-';
+        })
+    );
+}
+
 export default class Board extends Component {
     state = {
         board: null,
@@ -60,15 +72,30 @@ export default class Board extends Component {
         this.initBoard();
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps, prevState) {
+        // Re-init if some of the "critical props" have changed
         if (
             prevProps.xSize !== this.props.xSize
             || prevProps.ySize !== this.props.ySize
             || JSON.stringify(prevProps.lockedObjects) !== JSON.stringify(this.props.lockedObjects)
+            || JSON.stringify(prevProps.lockedBoard) !== JSON.stringify(this.props.lockedBoard)
         ) {
             this.initBoard();
         }
     }
+
+    getLockedObjects = () => {
+        let { lockedObjects = null, lockedBoard = null } = this.props;
+        // lockedBoard has priority over lockedObjects this way
+        if (lockedBoard) {
+            lockedObjects = [];
+            lockedBoard.forEach((rows, y) => rows.forEach((f, x) => f && lockedObjects.push({ x, y })));
+        }
+
+        return lockedObjects;
+    }
+
+    isLocked = () => this.getLockedObjects() ? true : false;
 
     objectContainsField(object, fieldCoordinates) {
         const { objectXSize, objectYSize } = this.props;
@@ -83,24 +110,37 @@ export default class Board extends Component {
         );
     }
 
+    handleBoardChange = () => {
+        // Handle onChange callback, which sends back the board as 2d array of true/false
+        const { onChange } = this.props;
+        const { board } = this.state;
+        const { active: activeState } = this.fieldStates;
+        if (onChange) onChange(board.map(row => row.map(fieldState => fieldState === activeState)));
+    }
+
     initBoard() {
-        const { xSize, ySize, lockedObjects } = this.props;
-        const board = Array.from(Array(ySize)).map((rows, y) =>
+        const { xSize, ySize } = this.props;
+        const lockedObjects = this.getLockedObjects();
+
+        const board = Array.from(Array(ySize)).map((row, y) =>
             Array.from(Array(xSize)).map((field, x) => (
                 lockedObjects && lockedObjects.some(object => this.objectContainsField(object, {x, y})) ?
                     this.fieldStates.active
                     : this.fieldStates.default
             ))
         );
-        this.setState({ board });
+        this.setState(
+            { board, placementPossible: false, placedObjects: lockedObjects || [] },
+            this.handleBoardChange
+        );
     }
 
     handleFieldHover = (hoveredY, hoveredX) => {
         let { board, placedObjects } = this.state;
-        const { maxObjects, lockedObjects } = this.props;
+        const { maxObjects } = this.props;
         const { fieldStates } = this;
 
-        if (placedObjects.length >= maxObjects || lockedObjects) return;
+        if (placedObjects.length >= maxObjects || this.isLocked()) return;
         
         const { objectXSize, objectYSize, xSize, ySize } = this.props;
 
@@ -137,23 +177,26 @@ export default class Board extends Component {
             row.map(fieldState => fieldState === fieldStates.hovered ? fieldStates.active : fieldState)
         );
 
-        this.setState({ board, placedObjects: [ ...placedObjects, { x: clickedX, y: clickedY } ] });
+        this.setState(
+            { board, placedObjects: [ ...placedObjects, { x: clickedX, y: clickedY } ] },
+            this.handleBoardChange
+        );
         if (onPlacement) onPlacement({ x: clickedX, y: clickedY });
     }
 
     render() {
-        const locked = this.props.lockedObjects ? true : false;
+        const locked = this.isLocked();
         const { board } = this.state; 
         return (
             <BoardContainer>
                 <BoardGrid board={board} locked={ locked }>
-                    { board.map((row, rowKey) => (
-                        row.map((fieldState, fieldKey) => (
+                    { board.map((row, y) => (
+                        row.map((fieldState, x) => (
                             <BoardField
-                                key={fieldKey}
+                                key={`${y}:${x}`}
                                 fieldState={ fieldState }
-                                onMouseOver={ () => this.handleFieldHover(rowKey, fieldKey) }
-                                onClick={ () => this.handleFieldClick(rowKey, fieldKey) }
+                                onMouseOver={ () => this.handleFieldHover(y, x) }
+                                onClick={ () => this.handleFieldClick(y, x) }
                                 locked={ locked }/>
                         ))
                     )) }

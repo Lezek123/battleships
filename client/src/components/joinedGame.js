@@ -32,7 +32,6 @@ const SummaryValue = styled.div`
 
 export default class JoinedGame extends Component {
     state = {
-        placedBombsLength: 0,
         bombsBoard: null
     }
 
@@ -40,15 +39,18 @@ export default class JoinedGame extends Component {
         this._contractManager = new ContractsManager();
     }
 
-    onBombPlacement = ({ x, y, currentBoard }) => {
-        this.setState(
-            ({ placedBombsLength }) =>
-            ({ placedBombsLength: ++placedBombsLength, bombsBoard: currentBoard })
-        );
+    handleBombBoardChange = (bombsBoard) => {
+        this.setState({ bombsBoard })
+    }
+
+    getPlacedBombsCount = () => {
+        const { bombsBoard } = this.state;
+        if (!bombsBoard) return 0;
+        return bombsBoard.reduce((count, row) => count += row.filter(f => f).length, 0);
     }
 
     isAttackValid = () => {
-        return this.state.placedBombsLength >= 25;
+        return this.getPlacedBombsCount() >= 25;
     }
 
     submitAttack = async (e) => {
@@ -59,8 +61,8 @@ export default class JoinedGame extends Component {
         const web3 = await this._contractManager.getWeb3();
         const { gameContract } = this.props;
         const { instance: contractInstance, data: { bombCost } } = gameContract;
-        const { bombsBoard, placedBombsLength } = this.state;
-        const bombsCost = bombCost * placedBombsLength;
+        const { bombsBoard } = this.state;
+        const bombsCost = bombCost * this.getPlacedBombsCount();
         const playerAddr = web3.currentProvider.selectedAddress;
 
         await contractInstance.setBombs(
@@ -71,26 +73,26 @@ export default class JoinedGame extends Component {
 
     render() {
         const { gameContract: { data: { bombCost, prize } } } = this.props;
-        const { placedBombsLength } = this.state;
+        const placedBombsCount = this.getPlacedBombsCount();
         
         return (
             <StyledGame>
                 <h1>Place your bombs</h1>
                 <AttackForm onSubmit={ this.submitAttack }>
                     <FormField>
-                        <BombsBoard onPlacement={ this.onBombPlacement }/>
+                        <BombsBoard onChange={ this.handleBombBoardChange }/>
                         <PlacedBombsSummary>
                             <SummaryRow>
                                 <SummaryName>Bombs placed:</SummaryName>
-                                <SummaryValue>{ placedBombsLength }</SummaryValue>
+                                <SummaryValue>{ placedBombsCount }</SummaryValue>
                             </SummaryRow>
                             <SummaryRow>
                                 <SummaryName>Total bombs cost:</SummaryName>
-                                <SummaryValue>{ round(placedBombsLength * bombCost, 8) } ETH</SummaryValue>
+                                <SummaryValue>{ round(placedBombsCount * bombCost, 8) } ETH</SummaryValue>
                             </SummaryRow>
                             <SummaryRow>
                                 <SummaryName>Winning reward:</SummaryName>
-                                <SummaryValue>{ round(prize - placedBombsLength * bombCost, 8) } ETH</SummaryValue>
+                                <SummaryValue>{ round(prize - placedBombsCount * bombCost, 8) } ETH</SummaryValue>
                             </SummaryRow>
                         </PlacedBombsSummary>
                         { !this.isAttackValid() && <FieldInfo text={ `You have to place at least 25 bombs` } /> }

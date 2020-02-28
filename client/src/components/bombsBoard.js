@@ -14,48 +14,8 @@ const StyledBombsBoard = styled.div`
 `;
 
 export default class BombsBoard extends Component {
-    state = { placedBombs: [] };
-
-    getLockedObjects = () => {
-        let { lockedObjects = null, lockedBoard } = this.props;
-
-        if (lockedBoard) {
-            lockedObjects = [];
-            lockedBoard.forEach((cols, x) =>
-                cols.forEach((placed, y) => placed && lockedObjects.push({ x, y }))
-            );
-        }
-
-        return lockedObjects;
-    }
-
-    getCurrentBombsBoard = () => {
-        const { placedBombs } = this.state;
-
-        // Note that bombs board is array[x][y], not array[y][x] (as in Board component)
-        return Array.from(Array(10)).map((cols, x) =>
-            Array.from(Array(10)).map((field, y) =>
-                placedBombs.some(({ x: placedX, y: placedY}) => x === placedX && y === placedY)
-            )
-        );
-    }
-    handlePlacement = (placedBomb) => {
-        const { onPlacement } = this.props;
-
-        this.setState(
-            ({ placedBombs }) =>
-                ({ placedBombs: [...placedBombs, placedBomb] }),
-            () => {
-                if (onPlacement) onPlacement({
-                    ...placedBomb,
-                    currentBoard: this.getCurrentBombsBoard()
-                }); 
-            }
-        );
-    }
-
     render() {
-        const lockedObjects = this.getLockedObjects();
+        const { onPlacement, onChange, lockedBoard } = this.props;
         return (
             <StyledBombsBoard>
                 <Board
@@ -63,8 +23,9 @@ export default class BombsBoard extends Component {
                     ySize={10}
                     objectXSize={1}
                     objectYSize={1}
-                    onPlacement={ this.handlePlacement }
-                    lockedObjects={ lockedObjects }
+                    onPlacement={ onPlacement }
+                    onChange={ onChange }
+                    lockedBoard={ lockedBoard }
                     />
             </StyledBombsBoard>
         )

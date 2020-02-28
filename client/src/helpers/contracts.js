@@ -103,7 +103,9 @@ export default class ContractsManager {
     fetchGameContractsWithData = async (filter = {}) => {
         await this.load();
         const eventOptions = { filter, fromBlock: 0 };
-        const events = await this._factoryInstance.getPastEvents('GameCreated', eventOptions);
+        let events = await this._factoryInstance.getPastEvents('GameCreated', eventOptions);
+        // Sort events by "newest"
+        events = events.sort((a, b) => a.blockNumber > b.blockNumber ? -1 : b.transactionIndex - a.transactionIndex);
 
         let contracts = [];
         for (let event of events) {
@@ -210,10 +212,11 @@ export default class ContractsManager {
             const cookieSeeds = cookies.get('seeds') || [];
             const seedToReveal = cookieSeeds.find(({ seed, ships }) => {
                 const seedDataHashStr = '0x' + sha256(shipsToBuffer(ships, Buffer.from(seed.data))).toString('hex');
-                console.log('Comapring hashes:', seedDataHashStr, creationHash);
+                console.log('Comaparing hashes:', seedDataHashStr, creationHash);
                 return seedDataHashStr === creationHash;
             });
             if (seedToReveal) {
+                console.log('Found seed to reveal');
                 try {
                     const wasSeedRevealedRes = await fetch(`${SEED_REVEAL_ENDPOINT}/${ gameContract.address }`);
                     const wasSeedRevealed = await wasSeedRevealedRes.json();

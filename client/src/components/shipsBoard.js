@@ -69,6 +69,7 @@ export default class ShipsBoard extends Component {
     render() {
         const { shipTypes } = this;
         const { shipType: selectedShipType } = this.state;
+        const { onChange } = this.props;
         const lockedObjects = this.getLockedObjects();
         return (
             <StyledShipsBoard>
@@ -92,7 +93,8 @@ export default class ShipsBoard extends Component {
                     objectYSize={selectedShipType.objectYSize}
                     maxObjects={5}
                     lockedObjects={ lockedObjects }
-                    onPlacement={ this.handlePlacement } />
+                    onPlacement={ this.handlePlacement }
+                    onChange={ onChange }/>
             </StyledShipsBoard>
         )
     }

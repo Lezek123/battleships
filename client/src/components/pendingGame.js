@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import styled from 'styled-components';
+import { compareBoards } from './board';
 import ShipsBoard from './shipsBoard';
 import BombsBoard from './bombsBoard';
 import { centerFlex } from '../styles/basic';
@@ -24,17 +25,40 @@ const BombsSnapshot = styled.div`
 `;
 
 export default class PendingGame extends Component {
-    state = { placedShips: null };
+    state = {
+        placedShips: null,
+        shipsBoard: null
+    };
 
     componentWillMount = async () => {
         const revealedDataRes = await fetch('/reveal/' + this.props.gameContract.address);
         const revealedData = await revealedDataRes.json();
         if (revealedData && revealedData.ships) this.setState({ placedShips: revealedData.ships });
     }
+
+    determineWinner = () => {
+        const { shipsBoard } = this.state;
+        const { gameContract: { data: { bombsBoard } } } = this.props;
+
+        if (shipsBoard) {
+            const compareRes = compareBoards(shipsBoard, bombsBoard);
+            const creatorWin = compareRes.some(row => row.some(resField => resField === 'a'));
+            return creatorWin ? 'creator' : 'bomber';
+        }
+
+        return null;
+    }
+
+    recieveShipsBoard = (board) => {
+        if (this.state.placedShips) {
+            this.setState({ shipsBoard: board });
+        }
+    }
     
     render() {
         const { placedShips } = this.state;
         const { gameContract: { data: { bombsBoard } } } = this.props;
+        const winner = this.determineWinner();
 
         return (
             <StyledGame>
@@ -43,7 +67,7 @@ export default class PendingGame extends Component {
                         { placedShips ? 
                             <>
                                 <h2>Ships:</h2>
-                                <ShipsBoard lockedShips={ placedShips }/>
+                                <ShipsBoard onChange={ this.recieveShipsBoard } lockedShips={ placedShips }/>
                             </>
                             :
                             <Loader text="Checking for revealed ships board..."/>
@@ -54,6 +78,7 @@ export default class PendingGame extends Component {
                         <BombsBoard lockedBoard={ bombsBoard }/>
                     </BombsSnapshot>
                 </Snapshots>
+                { winner && <h2>Winner: { winner }</h2> }
             </StyledGame>
         )
     }

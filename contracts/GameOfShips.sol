@@ -60,9 +60,9 @@ contract GameOfShips {
     
     function getBombsCost(bool[10][10] memory _bombsBoard) private view returns(uint) {
         uint bombsCost = 0;
-        for (uint8 x = 0; x < 10; ++x) {
-            for (uint8 y = 0; y < 10; ++y) {
-                if (_bombsBoard[x][y] == true) {
+        for (uint8 y = 0; y < 10; ++y) {
+            for (uint8 x = 0; x < 10; ++x) {
+                if (_bombsBoard[y][x] == true) {
                     bombsCost += bombCost;
                 }
             }
@@ -77,7 +77,7 @@ contract GameOfShips {
         creator.transfer(address(this).balance);
     }
     
-    function claimCreatorWin(Ship[5] memory ships, bytes memory seed) public {
+    function claimCreatorWin(Ship[5] memory ships, bytes32 seed) public {
         require(getShipsHash(ships, seed) == creationHash, "Invalid hash provided.");
         bool allShipsDestroyed = true;
         for (uint8 i = 0; i < 5; ++i) {
@@ -97,9 +97,8 @@ contract GameOfShips {
         creator.transfer(address(this).balance); // TODO: Maybe selfdestruct?
     }
     
-    // TODO: Force fixed seed length
-    function getShipsHash(Ship[5] memory ships, bytes memory seed) private pure returns(bytes32) {
-        bytes memory bytesToHash = new bytes(15 + seed.length);
+    function getShipsHash(Ship[5] memory ships, bytes32 seed) private pure returns(bytes32) {
+        bytes memory bytesToHash = new bytes(15 + 32);
         for (uint8 i = 0; i < 5; ++i) {
             bytesToHash[i*3]   = bytes1(ships[i].beginX);
             bytesToHash[i*3+1] = bytes1(ships[i].beginY);
@@ -119,7 +118,7 @@ contract GameOfShips {
             require(ship.beginY <= 6, "Invalid ship placement.");
             uint8 endY = ship.beginY + 4;
             for (uint8 shipPartY = ship.beginY; shipPartY < endY; ++shipPartY) {
-                if (bombsBoard[ship.beginX][shipPartY] == false) {
+                if (bombsBoard[shipPartY][ship.beginX] == false) {
                     return false;
                 }
             }
@@ -129,7 +128,7 @@ contract GameOfShips {
             require(ship.beginX <= 6, "Invalid ship placement.");
             uint8 endX = ship.beginX + 4;
             for (uint8 shipPartX = ship.beginX; shipPartX < endX; ++shipPartX) {
-                if (bombsBoard[shipPartX][ship.beginY] == false) {
+                if (bombsBoard[ship.beginY][shipPartX] == false) {
                     return false;
                 }
             }

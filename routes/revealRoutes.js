@@ -4,8 +4,7 @@ const
     mongoose = require('mongoose'),
     config = require('../config/config'),
     RevealedGame = mongoose.model('revealedGame'),
-    { sha256 } = require('../helpers/hashing'),
-    { shipsToBuffer } = require('../helpers/converters'),
+    { sha256, calcGameHash } = require('../helpers/hashing'),
     TruffleContract = require('@truffle/contract'),
     GameOfShipsAbi = require('../build/contracts/GameOfShips.json');
 
@@ -42,7 +41,7 @@ revealRouter.post('/', async (req, res) => {
 
     // Validate if the revealed seed is actually correct:
     const gameCreationHash = await game.creationHash();
-    const seedHash = '0x'+sha256(shipsToBuffer(ships, Buffer.from(seed))).toString('hex');
+    const seedHash = '0x'+calcGameHash(ships, seed).toString('hex');
     if (seedHash !== gameCreationHash) {
         res.status(400).send({ error: 'The revealed seed is incorrect' });
         return;
