@@ -5,23 +5,50 @@ import ShipsBoard from './shipsBoard';
 import BombsBoard from './bombsBoard';
 import { centerFlex } from '../styles/basic';
 import Loader from './loader';
+import { PrizeIcon } from '../constants/icons';
+import { breakpoints as bp, breakpointHit } from '../constants/breakpoints';
 
 const StyledGame = styled.div`
-    width: 550px;
+    width: 100%;
+    max-width: 1100px;
     ${ centerFlex('column') };
 `;
 const Snapshots = styled.div`
     display: flex;
     justify-content: space-between;
     width: 100%;
+    @media ${ breakpointHit(bp.PHONE )} {
+        flex-wrap: wrap;
+    }
+`;
+const SnapshotTitle = styled.h2`
+    margin: 0;
 `;
 const ShipsSnapshot = styled.div`
-    width: calc(50% - 5px);
+    width: calc(50% - 10px);
     ${ centerFlex('column') };
+    @media ${ breakpointHit(bp.PHONE )} {
+        margin-top: 20px;
+        width: 100%;
+    }
 `;
 const BombsSnapshot = styled.div`
-    width: calc(50% - 5px);
+    width: calc(50% - 10px);
     ${ centerFlex('column') };
+    @media ${ breakpointHit(bp.PHONE )} {
+        margin-top: 20px;
+        width: 100%;
+    }
+`;
+const WinnerInfo = styled.div`
+    font-size: 22px;
+    margin: 20px 0;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+`;
+const WinnerIcon = styled.div`
+    margin-right: 8px;
 `;
 
 export default class PendingGame extends Component {
@@ -43,7 +70,7 @@ export default class PendingGame extends Component {
         if (shipsBoard) {
             const compareRes = compareBoards(shipsBoard, bombsBoard);
             const creatorWin = compareRes.some(row => row.some(resField => resField === 'a'));
-            return creatorWin ? 'creator' : 'bomber';
+            return creatorWin ? 'Creator' : 'Bomber';
         }
 
         return null;
@@ -66,7 +93,7 @@ export default class PendingGame extends Component {
                     <ShipsSnapshot>
                         { placedShips ? 
                             <>
-                                <h2>Ships:</h2>
+                                <SnapshotTitle>Ships:</SnapshotTitle>
                                 <ShipsBoard onChange={ this.recieveShipsBoard } lockedShips={ placedShips }/>
                             </>
                             :
@@ -74,11 +101,11 @@ export default class PendingGame extends Component {
                         }
                     </ShipsSnapshot>
                     <BombsSnapshot>
-                        <h2>Bombs:</h2>
+                        <SnapshotTitle>Bombs:</SnapshotTitle>
                         <BombsBoard lockedBoard={ bombsBoard }/>
                     </BombsSnapshot>
                 </Snapshots>
-                { winner && <h2>Winner: { winner }</h2> }
+                { winner && <WinnerInfo><WinnerIcon><PrizeIcon /></WinnerIcon> Winner: { winner }</WinnerInfo> }
             </StyledGame>
         )
     }

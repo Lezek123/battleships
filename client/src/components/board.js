@@ -23,6 +23,15 @@ const BoardGrid = styled.div`
     opacity: ${ props => props.locked ? 0.7 : 1 };
 `;
 
+const ObjectImage = styled.div`
+    position: absolute;
+    pointer-events: none;
+    & img {
+        width: 100%;
+        height: 100%;
+    }
+`;
+
 const boardFieldColors = {
     default: '#ccc',
     hovered: '#ccffcc',
@@ -58,6 +67,7 @@ export default class Board extends Component {
     state = {
         board: null,
         placementPossible: false,
+        hoveredField: {},
         placedObjects: []
     }
 
@@ -159,12 +169,24 @@ export default class Board extends Component {
             board = board.map(row => row.map(field => field === fieldStates.hovered ? fieldStates.impossible : field ));
         }
 
-        this.setState({ board, placementPossible });
+        this.setState({ board, placementPossible, hoveredField: { x: hoveredX, y: hoveredY } });
+    }
+
+    clearHoverState = () => {
+        const { fieldStates: fs } = this;
+        this.setState(
+            ({ board }) =>
+            ({
+                placementPossible: false,
+                hoveredField: {},
+                board: board.map(row => row.map(f => f === fs.active ? f : fs.default ))
+            })
+        );
     }
 
     handleFieldClick = (clickedY, clickedX) => {
         let { board, placedObjects, placementPossible } = this.state;
-        const { maxObjects, onPlacement } = this.props;
+        const { maxObjects, onPlacement, objectXSize, objectYSize, objectImage } = this.props;
         const { fieldStates } = this;
 
         if (!placementPossible) return;
@@ -177,19 +199,50 @@ export default class Board extends Component {
             row.map(fieldState => fieldState === fieldStates.hovered ? fieldStates.active : fieldState)
         );
 
+        const placedObject = {
+            x: clickedX,
+            y: clickedY,
+            xSize: objectXSize,
+            ySize: objectYSize,
+            objectImage: objectImage
+        };
+
         this.setState(
-            { board, placedObjects: [ ...placedObjects, { x: clickedX, y: clickedY } ] },
+            { board, placedObjects: [ ...placedObjects, placedObject ] },
             this.handleBoardChange
         );
         if (onPlacement) onPlacement({ x: clickedX, y: clickedY });
     }
 
+    renderObjectImage = ({
+        x,
+        y,
+        xSize = this.props.objectXSize,
+        ySize = this.props.objectYSize,
+        objectImage = this.props.objectImage
+    }) => {
+        const { xSize: boardXSize, ySize: boardYSize } = this.props;
+        return (
+            <ObjectImage
+                style={ {
+                    width: `${ xSize / boardXSize * 100 }%`,
+                    height: `${ ySize / boardYSize * 100 }%`,
+                    top: `${ y / boardYSize * 100 }%`,
+                    left: `${ x / boardXSize * 100}%`
+                } }
+                >
+                { objectImage }
+            </ObjectImage>
+        );
+    }
+
     render() {
         const locked = this.isLocked();
-        const { board } = this.state; 
+        const { board, placementPossible, hoveredField, placedObjects } = this.state;
+       
         return (
             <BoardContainer>
-                <BoardGrid board={board} locked={ locked }>
+                <BoardGrid board={board} locked={ locked } onMouseOut={ this.clearHoverState }>
                     { board.map((row, y) => (
                         row.map((fieldState, x) => (
                             <BoardField
@@ -201,6 +254,8 @@ export default class Board extends Component {
                         ))
                     )) }
                 </BoardGrid>
+                { placedObjects.map(placedObj => this.renderObjectImage(placedObj)) }
+                { placementPossible && this.renderObjectImage(hoveredField) }
             </BoardContainer>
         )
     }

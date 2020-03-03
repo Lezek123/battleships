@@ -2,7 +2,9 @@ import React, { Component } from 'react';
 import GamePreviewBox from './gamePreviewBox';
 import styled from 'styled-components';
 
-const StyledGamesList = styled.div``;
+const StyledGamesList = styled.div`
+    width: 100%;
+`;
 
 export default class GamesList extends Component {
     render() {

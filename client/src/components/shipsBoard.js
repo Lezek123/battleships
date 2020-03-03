@@ -2,20 +2,24 @@ import React, { Component } from 'react';
 import Board from './board';
 import styled, { css } from 'styled-components';
 import { centerFlex } from '../styles/basic';
-import { BasicButton } from './navigation/buttons';
+import { SmallButton } from './navigation/buttons';
+import horizontalShipImg from '../images/horizontal-ship.png';
+import verticalShipImg from '../images/vertical-ship.png';
 
 const StyledShipsBoard = styled.div`
-    box-sizing: border-box;
     width: 100%;
     padding: 20px;
     border-radius: 20px;
-    background: #333;
+    background: rgba(0, 0, 0, 0.2);
     margin-top: 10px;
     ${ centerFlex('column') };
 `;
 
 const ShipTypeSelect =  styled.div`
     margin-bottom: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: space-evenly;
 `;
 
 export default class ShipsBoard extends Component {
@@ -24,11 +28,13 @@ export default class ShipsBoard extends Component {
             name: 'horizontal',
             objectXSize: 5,
             objectYSize: 1,
+            objectImage: <img src={ horizontalShipImg } alt="Horizontal ship" />
         },
         vertical: {
             name: 'vertical',
             objectXSize: 1,
             objectYSize: 5,
+            objectImage: <img src={ verticalShipImg } alt="Vertical ship" />
         },
     }
     constructor(props) {
@@ -79,9 +85,9 @@ export default class ShipsBoard extends Component {
                             const shipType = shipTypes[typeKey];
                             const active = selectedShipType.name === shipType.name;
                             return (
-                                <BasicButton key={typeKey} className={ active ? 'active' : '' } onClick={ (e) => this.changeType(e, shipType) }>
+                                <SmallButton key={typeKey} className={ active ? 'active' : '' } onClick={ (e) => this.changeType(e, shipType) }>
                                     { shipType.name }
-                                </BasicButton>
+                                </SmallButton>
                             );
                         })}
                     </ShipTypeSelect>
@@ -91,6 +97,7 @@ export default class ShipsBoard extends Component {
                     ySize={10}
                     objectXSize={selectedShipType.objectXSize}
                     objectYSize={selectedShipType.objectYSize}
+                    objectImage={selectedShipType.objectImage}
                     maxObjects={5}
                     lockedObjects={ lockedObjects }
                     onPlacement={ this.handlePlacement }

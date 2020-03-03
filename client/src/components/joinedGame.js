@@ -6,10 +6,12 @@ import Submit from './fields/Submit';
 import { FormField, FieldInfo } from './fields/formFields';
 import ContractsManager from '../helpers/contracts';
 import BombsBoard from './bombsBoard';
+import { breakpoints as bp, breakpointHit } from '../constants/breakpoints';
 // import { useParams } from 'react-router-dom';
 
 const StyledGame = styled.div`
-    width: 550px;
+    width: 100%;
+    max-width: 550px;
     ${ centerFlex('column') };
 `;
 const AttackForm = styled.form`
@@ -18,6 +20,7 @@ const AttackForm = styled.form`
 `;
 const PlacedBombsSummary = styled.div`
     margin-top: 20px;
+    margin-bottom: 10px;
 `;
 const SummaryRow = styled.div`
     display: flex;
@@ -28,6 +31,11 @@ const SummaryName = styled.div`
     font-weight: bold;
 `;
 const SummaryValue = styled.div`
+`;
+const JoinedGameTitle = styled.h1`
+    @media ${ breakpointHit(bp.PHONE) } {
+        font-size: 24px;
+    }
 `;
 
 export default class JoinedGame extends Component {
@@ -77,7 +85,7 @@ export default class JoinedGame extends Component {
         
         return (
             <StyledGame>
-                <h1>Place your bombs</h1>
+                <JoinedGameTitle>Place your bombs</JoinedGameTitle>
                 <AttackForm onSubmit={ this.submitAttack }>
                     <FormField>
                         <BombsBoard onChange={ this.handleBombBoardChange }/>

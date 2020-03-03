@@ -1,7 +1,7 @@
 // Basic styles / components of customizable form fields
 import React from 'react';
 import styled from 'styled-components';
-import { Info as InfoIcon } from '@material-ui/icons';
+import { MdInfo as InfoIcon } from 'react-icons/md';
 import color from '../../constants/colors';
 import { centerFlex } from '../../styles/basic';
 
@@ -15,13 +15,15 @@ export const BigLabel = styled.label`
 `;
 
 const StyledFieldInfo = styled.div`
-    margin: 10px 0;
+    margin-bottom: 15px;
     ${ centerFlex('row') };
     color: ${ color.INFO_LIGHT };
     font-size: 14px;
 `;
 const FieldInfoIcon = styled(InfoIcon)`
-    margin-right: 5px;
+    font-size: 22px;
+    margin-right: 8px;
+    flex-shrink: 0;
 `;
 
 export const FieldInfo = ({ text }) => (

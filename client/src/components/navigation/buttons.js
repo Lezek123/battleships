@@ -1,4 +1,5 @@
 import styled, { css } from 'styled-components';
+import color from '../../constants/colors';
 
 const themes = {
     default: {
@@ -8,11 +9,11 @@ const themes = {
         hoverBgColor: 'transparent',
         hoverShadowColor: '#fff',
         activeColor: '#222',
-        activeBgColor: '#ccc',
+        activeBgColor: '#fff',
     },
     primary: {
         color: '#fff',
-        bgColor: '#465d8a',
+        bgColor: color.PRIMARY,
         hoverColor: '#b9c3d7',
         hoverBgColor: 'transparent',
         hoverShadowColor: '#b9c3d7'
@@ -20,9 +21,9 @@ const themes = {
 };
 
 const BasicButton = styled.button`
+    font-weight: 600;
     display: inline-block;
     padding: 15px;
-    margin: 0 20px;
     border: 0;
     cursor: ${ props => props.disabled ? 'not-allowed' : 'pointer' };
     color: ${ props => props.theme.color } !important;
@@ -63,4 +64,10 @@ const BigButton = styled(BasicButton)`
     padding: 20px;
 `;
 
-export { themes, BasicButton, BigButton };
+const SmallButton = styled(BasicButton)`
+    padding: 10px;
+    font-size: 18px;
+    width: 150px;
+`;
+
+export { themes, BasicButton, BigButton, SmallButton };

@@ -4,11 +4,10 @@ import styled, { css } from 'styled-components';
 import { centerFlex } from '../styles/basic';
 
 const StyledBombsBoard = styled.div`
-    box-sizing: border-box;
     width: 100%;
     padding: 20px;
     border-radius: 20px;
-    background: #333;
+    background: rgba(0, 0, 0, 0.2);
     margin-top: 10px;
     ${ centerFlex('column') };
 `;
