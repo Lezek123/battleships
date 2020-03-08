@@ -120,7 +120,7 @@ export default class GamePreviewBox extends Component {
                         <GameDataRow icon={<JoinTimeoutIcon />} dataName={'Join timeout block'} dataVal={'#'+game.data.joinTimeoutBlockNumber} />
                         <GameDataRow icon={<RevealTimeoutIcon />} dataName={'Reveal timeout'} dataVal={game.data.revealTimeoutBlocks} unit={'blocks'}/>
                     </GameData>
-                    <JoinButton theme={ themes.primary } as={ Link } to={ generateGamePath(game.address) }>JOIN</JoinButton>
+                    <JoinButton theme={ themes.primary } as={ Link } to={ generateGamePath(game.index) }>JOIN</JoinButton>
                 </PreviewBoxInner>
             </StyledGamePreviewBox>
         )

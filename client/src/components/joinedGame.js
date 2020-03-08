@@ -65,22 +65,15 @@ export default class JoinedGame extends Component {
         e.preventDefault();
         if (!this.isAttackValid()) return;
 
-        // TODO: Move to ContractManager method?
-        const web3 = await this._contractManager.getWeb3();
-        const { gameContract } = this.props;
-        const { instance: contractInstance, data: { bombCost } } = gameContract;
+        const { index, gameData: { bombCost } } = this.props;
         const { bombsBoard } = this.state;
         const bombsCost = bombCost * this.getPlacedBombsCount();
-        const playerAddr = web3.currentProvider.selectedAddress;
 
-        await contractInstance.setBombs(
-            bombsBoard,
-            { from: playerAddr, value: web3.utils.toWei(bombsCost.toString()) }
-        );
+        await this._contractManager.setBombsInGame(index, bombsBoard, bombsCost);
     }
 
     render() {
-        const { gameContract: { data: { bombCost, prize } } } = this.props;
+        const { gameData: { bombCost, prize } } = this.props;
         const placedBombsCount = this.getPlacedBombsCount();
         
         return (

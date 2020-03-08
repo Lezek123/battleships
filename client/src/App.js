@@ -83,16 +83,16 @@ class App extends Component {
 				<AppBody>
 					<Switch>
 						<Route path={ MY_GAMES_PATH }>
-							<GamesListWrapper fetchMethod={ this._contractsManager.fetchUsersGameContracts } />
+							<GamesListWrapper fetchMethod={ this._contractsManager.fetchUsersGames } />
 						</Route>
 						<Route path={ GAME_PATH } render={ props => {
-							return <Game address={props.match.params.id} />;
+							return <Game index={props.match.params.id} />;
 						} } />
 						<Route path={ CREATE_GAME_PATH }>
 							<CreateGameForm onSubmit={ this.handleGameCreation } />
 						</Route>
 						<Route path={ GAMES_LIST_PATH }>
-							<GamesListWrapper fetchMethod={ this._contractsManager.fetchGameContractsWithData } />
+							<GamesListWrapper fetchMethod={ this._contractsManager.fetchAllGames } />
 						</Route>
 						<Route path="/">
 							<AppHeader>

@@ -58,14 +58,14 @@ export default class PendingGame extends Component {
     };
 
     componentWillMount = async () => {
-        const revealedDataRes = await fetch('/reveal/' + this.props.gameContract.address);
+        const revealedDataRes = await fetch('/reveal/' + this.props.index);
         const revealedData = await revealedDataRes.json();
         if (revealedData && revealedData.ships) this.setState({ placedShips: revealedData.ships });
     }
 
     determineWinner = () => {
         const { shipsBoard } = this.state;
-        const { gameContract: { data: { bombsBoard } } } = this.props;
+        const { gameData: { bombsBoard } } = this.props;
 
         if (shipsBoard) {
             const compareRes = compareBoards(shipsBoard, bombsBoard);
@@ -84,7 +84,7 @@ export default class PendingGame extends Component {
     
     render() {
         const { placedShips } = this.state;
-        const { gameContract: { data: { bombsBoard } } } = this.props;
+        const { gameData: { bombsBoard } } = this.props;
         const winner = this.determineWinner();
 
         return (

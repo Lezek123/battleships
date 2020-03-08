@@ -5,23 +5,24 @@ import JoinedGame from './joinedGame';
 import PendingGame from './pendingGame';
 
 export default class Game extends Component {
-    state = { gameContract: null }
+    state = { gameData: null }
     
     async componentWillMount() {
-        const { address } = this.props;
+        const { index } = this.props;
         this._contractsManager = new ContractsManager();
-        const gameContract = await this._contractsManager.fetchGameContractWithData(address);
-        this.setState({ gameContract });
+        const gameData = await this._contractsManager.fetchGameData(index);
+        this.setState({ gameData });
     }
 
     render() {
-        const { gameContract } = this.state;
+        const { index } = this.props;
+        const { gameData } = this.state;
         
-        if (!this.state.gameContract) return <Loader text="Fetching game data..." />;
+        if (!gameData) return <Loader text="Fetching game data..." />;
         return (
-            !gameContract.data.bomberAddr ?
-                <JoinedGame gameContract={gameContract} />
-                : <PendingGame gameContract={gameContract} />
+            !gameData.bomberAddr ?
+                <JoinedGame index={index} gameData={gameData} />
+                : <PendingGame index={index} gameData={gameData} />
         )
     }
 }

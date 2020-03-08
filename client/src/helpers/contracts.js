@@ -1,7 +1,6 @@
 import Web3 from 'web3';
 import axios from 'axios';
-import GameOfShipsAbi from '../contracts/GameOfShips.json';
-import GameOfShipsFactoryAbi from '../contracts/GameOfShipsFactory.json';
+import MainContractAbi from '../contracts/GameOfShips.json';
 import TruffleContract from "@truffle/contract";
 import { round } from './math';
 import { shipsToBuffer } from './converters';
@@ -12,6 +11,9 @@ const cookies = new Cookies();
 const SEED_REVEAL_INTERVAL_TIME = 10000;
 const SEED_REVEAL_ENDPOINT = '/reveal';
 
+const EVENT_GAME_CREATED = 'GameCreated';
+const EVENT_BOMBS_PLACED = 'BombsPlaced';
+
 export default class ContractsManager {
     initializing = false;
     initialized = false;
@@ -19,7 +21,6 @@ export default class ContractsManager {
     _seedRevealInterval = null;
     _web3 = null;
     _factoryInstance = null;
-    _gameContract = null;
 
     constructor() {
         if (!ContractsManager.instance) {
@@ -35,12 +36,9 @@ export default class ContractsManager {
             
             this._web3 = await this.initWeb3();
             
-            const FactoryContract = TruffleContract(GameOfShipsFactoryAbi);
-            FactoryContract.setProvider(this._web3.currentProvider);
-            this._factoryInstance = await FactoryContract.deployed();
-
-            this._gameContract = TruffleContract(GameOfShipsAbi);
-            this._gameContract.setProvider(this._web3.currentProvider);
+            const MainContract = TruffleContract(MainContractAbi);
+            MainContract.setProvider(this._web3.currentProvider);
+            this._mainContractInstance = await MainContract.deployed();
 
             this._seedRevealInterval = setInterval(this.seedRevealDuty, SEED_REVEAL_INTERVAL_TIME);
 
@@ -90,63 +88,62 @@ export default class ContractsManager {
         return this._web3;
     }
 
-    fetchUsersGameContracts = async () => {
+    fetchUsersGames = async () => {
         await this.load();
         const userAddr = this._web3.currentProvider.selectedAddress;
-        // TODO: Some way to optimalize that instead of fetching ALL contracts?
-        let contracts = await this.fetchGameContractsWithData();
-        return contracts.filter(({data}) => 
-            this.compareAddr(data.creatorAddr, userAddr) || this.compareAddr(data.bomberAddr, userAddr)
-        );
+
+        const createdGamesIndexes = await this.fetchGameIndexesByEvent(EVENT_GAME_CREATED, { _creator: userAddr });
+        const bombedGamesIndexes = await this.fetchGameIndexesByEvent(EVENT_BOMBS_PLACED, { _bomber: userAddr });
+        const usersGamesIndexes = createdGamesIndexes.concat(bombedGamesIndexes);
+        const games = await this.fetchGamesByIndexes(usersGamesIndexes);
+
+        return games;
     }
 
-    fetchGameContractsWithData = async (filter = {}) => {
+    fetchAllGames = async () => {
+        const indexes = await this.fetchGameIndexesByEvent(EVENT_GAME_CREATED);
+        return await this.fetchGamesByIndexes(indexes);
+    }
+
+    fetchGameIndexesByEvent = async (eventName, filter = {}) => {
         await this.load();
+        // TODO: Divide into "batches" (to use with pagination) using fromBlock and toBlock
         const eventOptions = { filter, fromBlock: 0 };
-        let events = await this._factoryInstance.getPastEvents('GameCreated', eventOptions);
+        let events = await this._mainContractInstance.getPastEvents(eventName, eventOptions);
         // Sort events by "newest"
         events = events.sort((a, b) => a.blockNumber > b.blockNumber ? -1 : b.transactionIndex - a.transactionIndex);
 
-        let contracts = [];
-        for (let event of events) {
-            const address = event.args._gameAddress;
-            const creationTx = event.creationHash;
-            const { instance, data } = await this.fetchGameContractWithData(address);
-            contracts.push({ creationTx, address, instance, data });
-        };
-
-        return contracts;
+        return events.map(event => event.args._gameIndex.toNumber());
     }
 
-    fetchGameContractWithData = async (address) => {
-        await this.load();
-        const instance = await this._gameContract.at(address);
-        const data = await this.getGameContractData(instance);
-        return { address, instance, data };
+    fetchGamesByIndexes = async (indexes) => {
+        // Make gameIndexes unique
+        indexes = indexes.filter((gameIndex, arrIndex) => indexes.indexOf(gameIndex) === arrIndex);
+
+        let games = [];
+        for (let index of indexes) {
+            const data = await this.fetchGameData(index);
+            games.push({ index, data });
+        }
+
+        return games;
     }
 
-    getGameContractData = async (gameInstance) => {
+    fetchGameData = async (index) => {
         await this.load();
 
-        const creationHash = await gameInstance.creationHash();
-        const creatorAddr = await gameInstance.creator();
-        const bomberAddr = await gameInstance.bomber();
-        const prizeWei = await gameInstance.prize();
-        const bombCostWei = await gameInstance.bombCost();
-        const joinTimeoutBlockNumber = await gameInstance.joinTimeoutBlockNumber();
-        const revealTimeoutBlocks = await gameInstance.revealTimeoutBlocks();
-        const bombsBoard = await gameInstance.getBombs();
+        const originalData = await this._mainContractInstance.games(index);
 
         return {
-            creationHash,
-            prize: round(this._web3.utils.fromWei(prizeWei), 8),
-            bombCost: round(this._web3.utils.fromWei(bombCostWei), 8),
-            joinTimeoutBlockNumber: joinTimeoutBlockNumber.toNumber(),
-            revealTimeoutBlocks: revealTimeoutBlocks.toNumber(),
-            bombsBoard,
-            creatorAddr: this.isEmptyAddr(creatorAddr) ? null : creatorAddr,
-            bomberAddr: this.isEmptyAddr(bomberAddr) ? null : bomberAddr
-        }
+            creationHash: originalData.creationHash,
+            prize: round(this._web3.utils.fromWei(originalData.prize), 8),
+            bombCost: round(this._web3.utils.fromWei(originalData.bombCost), 8),
+            joinTimeoutBlockNumber: originalData.joinTimeoutBlockNumber.toNumber(),
+            revealTimeoutBlocks: originalData.revealTimeoutBlocks.toNumber(),
+            bombsBoard: await this._mainContractInstance.getBombs(index), // TODO: Only when necessary?
+            creatorAddr: this.isEmptyAddr(originalData.creator) ? null : originalData.creator,
+            bomberAddr: this.isEmptyAddr(originalData.bomber) ? null : originalData.bomber
+        };
     }
 
     // Atomic operations for adding/removing seeds to/from seeds cookie:
@@ -189,26 +186,39 @@ export default class ContractsManager {
 			];
 
 			console.log('Creating new game with args:', gameConstructorArgs);
-			await this._factoryInstance.createGame(...gameConstructorArgs);
+			await this._mainContractInstance.createGame(...gameConstructorArgs);
 		} catch(e) {
 			console.log(e);
 		}
     }
 
-    // TODO: Maybe implement and use "setBombs" event watch for that?
+    setBombsInGame = async (gameIndex, bombsBoard, ethCost) => {
+        await this.load();
+
+        const playerAddr = this._web3.currentProvider.selectedAddress;
+
+        return await this._mainContractInstance.setBombs(
+            gameIndex,
+            bombsBoard,
+            { from: playerAddr, value: this._web3.utils.toWei(ethCost.toString()) }
+        );
+    }
+
     seedRevealDuty = async () => {
         await this.load();
 
         console.log('Seed reveal duty...');
 
-        const usersCreatedGames = await this.fetchGameContractsWithData({
-            creator: this._web3.currentProvider.selectedAddress,
-        });
+        const usersCreatedGamesIndexes = await this.fetchGameIndexesByEvent(
+            EVENT_GAME_CREATED,
+            { _creator: this._web3.currentProvider.selectedAddress }
+        );
+        const usersCreatedGames = await this.fetchGamesByIndexes(usersCreatedGamesIndexes);
 
-        for (let gameContract of usersCreatedGames) {
-            const { bomberAddr, creationHash } = gameContract.data;
+        for (let game of usersCreatedGames) {
+            const { bomberAddr, creationHash } = game.data;
             if (!bomberAddr) continue;
-            console.log('Found potential game:', gameContract);
+            console.log('Found potential game:', game);
             const cookieSeeds = cookies.get('seeds') || [];
             const seedToReveal = cookieSeeds.find(({ seed, ships }) => {
                 const seedDataHashStr = '0x' + sha256(shipsToBuffer(ships, Buffer.from(seed.data))).toString('hex');
@@ -218,11 +228,11 @@ export default class ContractsManager {
             if (seedToReveal) {
                 console.log('Found seed to reveal');
                 try {
-                    const wasSeedRevealedRes = await fetch(`${SEED_REVEAL_ENDPOINT}/${ gameContract.address }`);
+                    const wasSeedRevealedRes = await fetch(`${SEED_REVEAL_ENDPOINT}/${ game.index }`);
                     const wasSeedRevealed = await wasSeedRevealedRes.json();
                     if (!wasSeedRevealed) {
                         await axios.post(SEED_REVEAL_ENDPOINT, {
-                            address: gameContract.address,
+                            gameIndex: game.index,
                             ships: seedToReveal.ships,
                             seed: seedToReveal.seed.data
                         });
