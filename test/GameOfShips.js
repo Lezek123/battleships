@@ -312,7 +312,6 @@ it('Should allow valid creator claim', async function() {
         .add(web3.utils.toBN(DEFAULT_INIT_VALUE))
         .add(placedBombsCost);
 
-    console.log(expectedBalance.toString());
     assert.strictEqual(creatorBalanceAfterClaim.toString(), expectedBalance.toString());
 
     logTransactionCost('Creator claim', result);
@@ -325,8 +324,6 @@ it('Should disallow caliming join timeout return before timeout.', async functio
 });
 
 it('Should disallow caliming join timeout return after the game has started.', async function() {
-    this.timeout(60000);
-
     const MainInstance = await MainContract.deployed();
     const gameIndex = await initGameContract();
     const game = await MainInstance.games(gameIndex);
