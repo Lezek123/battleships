@@ -67,19 +67,19 @@ contract GameOfShips {
         emit BombsPlaced(_gameIndex, msg.sender);
     }
 
-    function getBombAtPosition(uint128 _bombsBoard, uint128 _position) private view returns(bool) {
+    function getBoardFieldAtPosition(uint128 _bombsBoard, uint128 _position) private view returns(bool) {
         // Check byte at given index using bitwise AND operator
         return (_bombsBoard & (2 ** _position)) != 0;
     }
 
-    function getBombAtXY(uint128 _bombsBoard, uint8 _x, uint8 _y) private view returns(bool) {
-        return getBombAtPosition(_bombsBoard, _y * 10 + _x);
+    function getBoardFieldAtXY(uint128 _bombsBoard, uint8 _x, uint8 _y) private view returns(bool) {
+        return getBoardFieldAtPosition(_bombsBoard, _y * 10 + _x);
     }
     
     function getBombsCost(uint128 _bombsBoard, uint singleBombCost) private view returns(uint) {
         uint bombsCost = 0;
         for (uint8 i = 0; i < 100; ++i) {
-            if (getBombAtPosition(_bombsBoard, i)) bombsCost += singleBombCost;
+            if (getBoardFieldAtPosition(_bombsBoard, i)) bombsCost += singleBombCost;
         }
         
         return bombsCost;
@@ -95,29 +95,22 @@ contract GameOfShips {
     function claimCreatorWin(uint32 _gameIndex, Ship[5] memory _ships, bytes32 _seed) public {
         Game storage game = games[_gameIndex];
         require(getShipsHash(_ships, _seed) == game.creationHash, "Invalid hash provided.");
-        bool allShipsDestroyed = true;
-        for (uint8 i = 0; i < 5; ++i) {
-            if (checkIfShipDestoyed(_gameIndex, _ships[i]) == false) {
-                allShipsDestroyed = false;
-            }
-        }
-        require(allShipsDestroyed == false, "Creator is not a winner.");
+        uint128 shipsBoard = validateShipsAndCreateBoard(_ships);
+        require((shipsBoard & game.bombsBoard) != shipsBoard, "Creator is not a winner.");
         game.creator.transfer(game.prize + game.payedBombCost);
-        // TODO: Emit event and remove game for active games list
+        // TODO: Emit event and remove game from active games list?
     }
     
     function claimBomberWin(uint32 _gameIndex) public {
         Game storage game = games[_gameIndex];
         require(game.bomber != address(0), "Bomber is not defined.");
-        require(game.bomber == msg.sender, "Only bomber can call this function.");
         require(block.number > game.revealTimeoutBlockNumber, "Timeout not reached yet.");
         game.bomber.transfer(game.prize);
         game.creator.transfer(game.payedBombCost);
-        // TODO: Emit event and remove game for active games list
+        // TODO: Emit event and remove game from active games list?
     }
     
     function getShipsHash(Ship[5] memory _ships, bytes32 _seed) private pure returns(bytes32) {
-        // TODO: Optimalize that?
         bytes memory bytesToHash = new bytes(15 + 32);
         for (uint8 i = 0; i < 5; ++i) {
             bytesToHash[i*3] = bytes1(_ships[i].beginX);
@@ -129,32 +122,35 @@ contract GameOfShips {
         }
         return sha256(bytesToHash);
     }
-    
-    // Validates ship and check if it's destroyed by bombs.
-    // Uses "require" contitions to check if the ship can be placed like that.
-    function checkIfShipDestoyed(uint32 _gameIndex, Ship memory _ship) private view returns(bool) {
-        Game storage game = games[_gameIndex];
-        if (_ship.vertical == true) {
-            // Vertical ship validation and checking
-            require(_ship.beginY <= 6, "Invalid ship placement.");
-            uint8 endY = _ship.beginY + 4;
-            for (uint8 shipPartY = _ship.beginY; shipPartY < endY; ++shipPartY) {
-                if (getBombAtXY(game.bombsBoard, _ship.beginX, shipPartY) == false) {
-                    return false;
+
+    function validateShipsAndCreateBoard(Ship[5] memory _ships) private view returns(uint128) {
+        uint128 shipsBoard = 0;
+        for (uint8 i = 0; i < 5; ++i) {
+            Ship memory ship = _ships[i];
+            if (ship.vertical == true) {
+                // Vertical ship validation
+                require(ship.beginY <= 6, "Invalid ship placement.");
+                // Placing on bit-board + overlay check
+                uint8 endY = ship.beginY + 4;
+                for (uint8 shipPartY = ship.beginY; shipPartY < endY; ++shipPartY) {
+                    uint128 shipPartPosition = shipPartY * 10 + ship.beginX;
+                    require(getBoardFieldAtPosition(shipsBoard, shipPartPosition) == false, 'Placed ships cannot overlay!');
+                    shipsBoard += 2 ** shipPartPosition;
+                }
+            }
+            else {
+                // Horizontal ship validation
+                require(ship.beginX <= 6, "Invalid ship placement.");
+                // Placing on a bit-board + overlay check
+                uint8 endX = ship.beginX + 4;
+                for (uint8 shipPartX = ship.beginX; shipPartX < endX; ++shipPartX) {
+                    uint128 shipPartPosition = ship.beginY * 10 + shipPartX;
+                    require(getBoardFieldAtPosition(shipsBoard, shipPartPosition) == false, 'Placed ships cannot overlay!');
+                    shipsBoard += 2 ** shipPartPosition;
                 }
             }
         }
-        else {
-            // Horizontal ship validation and checking
-            require(_ship.beginX <= 6, "Invalid ship placement.");
-            uint8 endX = _ship.beginX + 4;
-            for (uint8 shipPartX = _ship.beginX; shipPartX < endX; ++shipPartX) {
-                if (getBombAtXY(game.bombsBoard, shipPartX, _ship.beginY) == false) {
-                    return false;
-                }
-            }
-        }
-        
-        return true;
+
+        return shipsBoard;
     }
 }
