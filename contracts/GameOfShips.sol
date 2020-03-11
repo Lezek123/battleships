@@ -14,7 +14,7 @@ contract GameOfShips {
         uint revealTimeoutBlockNumber;
         address payable bomber;
         uint payedBombCost;
-        bool[10][10] bombsBoard;
+        uint128 bombsBoard; // Board encoded into bits
     }
 
     struct Ship {
@@ -53,20 +53,9 @@ contract GameOfShips {
         emit GameCreated(lastGameIndex, msg.sender);
     }
     
-    function setBombs(uint32 _gameIndex, bool[10][10] memory _bombsBoard) public payable {
+    function setBombs(uint32 _gameIndex, uint128 _bombsBoard) public payable {
         Game storage game = games[_gameIndex];
         require(game.bomber == address(0), "Bomber already defined.");
-        // TODO: Send bombs as bytes, where each byte represents bomb's X and Y
-        // so bombCost will be just bombs.length * game.bombCost.
-        // Then avoid calculating whether bombs actually destroyed all the ships UNLESS
-        // there is a dispute? (players did not agree on who won the game)
-        // Dispute logic: Creator is forced to reveal his ships before reveal timeout, but he should
-        // also send a bool signaling whether he won or not. If he lied and the dispute may be requested
-        // by the bomber. Loser of a dispute pays settlement costs. If no dispute is requested
-        // in given time - creator is assumed to be right.
-        //
-        // Or... Try to optimalize checking if ships were destroyed somehow...
-        //
         uint bombsCost = getBombsCost(_bombsBoard, game.bombCost);
         require(msg.value >= bombsCost, "Not enough wei sent.");
         // bombsCost / bombCost = number of bombs placed (this way we don't need to run the loops again)
@@ -78,18 +67,19 @@ contract GameOfShips {
         emit BombsPlaced(_gameIndex, msg.sender);
     }
 
-    function getBombs(uint32 _gameIndex) public view returns(bool[10][10] memory) {
-        return games[_gameIndex].bombsBoard;
+    function getBombAtPosition(uint128 _bombsBoard, uint128 _position) private view returns(bool) {
+        // Check byte at given index using bitwise AND operator
+        return (_bombsBoard & (2 ** _position)) != 0;
+    }
+
+    function getBombAtXY(uint128 _bombsBoard, uint8 _x, uint8 _y) private view returns(bool) {
+        return getBombAtPosition(_bombsBoard, _y * 10 + _x);
     }
     
-    function getBombsCost(bool[10][10] memory _bombsBoard, uint singleBombCost) private view returns(uint) {
+    function getBombsCost(uint128 _bombsBoard, uint singleBombCost) private view returns(uint) {
         uint bombsCost = 0;
-        for (uint8 y = 0; y < 10; ++y) {
-            for (uint8 x = 0; x < 10; ++x) {
-                if (_bombsBoard[y][x] == true) {
-                    bombsCost += singleBombCost;
-                }
-            }
+        for (uint8 i = 0; i < 100; ++i) {
+            if (getBombAtPosition(_bombsBoard, i)) bombsCost += singleBombCost;
         }
         
         return bombsCost;
@@ -130,7 +120,7 @@ contract GameOfShips {
         // TODO: Optimalize that?
         bytes memory bytesToHash = new bytes(15 + 32);
         for (uint8 i = 0; i < 5; ++i) {
-            bytesToHash[i*3]   = bytes1(_ships[i].beginX);
+            bytesToHash[i*3] = bytes1(_ships[i].beginX);
             bytesToHash[i*3+1] = bytes1(_ships[i].beginY);
             bytesToHash[i*3+2] = bytes1(_ships[i].vertical ? 1 : 0);
         }
@@ -149,7 +139,7 @@ contract GameOfShips {
             require(_ship.beginY <= 6, "Invalid ship placement.");
             uint8 endY = _ship.beginY + 4;
             for (uint8 shipPartY = _ship.beginY; shipPartY < endY; ++shipPartY) {
-                if (game.bombsBoard[shipPartY][_ship.beginX] == false) {
+                if (getBombAtXY(game.bombsBoard, _ship.beginX, shipPartY) == false) {
                     return false;
                 }
             }
@@ -159,7 +149,7 @@ contract GameOfShips {
             require(_ship.beginX <= 6, "Invalid ship placement.");
             uint8 endX = _ship.beginX + 4;
             for (uint8 shipPartX = _ship.beginX; shipPartX < endX; ++shipPartX) {
-                if (game.bombsBoard[_ship.beginY][shipPartX] == false) {
+                if (getBombAtXY(game.bombsBoard, shipPartX, _ship.beginY) == false) {
                     return false;
                 }
             }

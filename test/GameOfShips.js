@@ -2,9 +2,8 @@ const MainContract = artifacts.require("GameOfShips.sol");
 const crypto = require('crypto');
 const assert = require('assert');
 const truffleAssert = require('truffle-assertions');
-const BN = web3.utils.BN;
 const { calcGameHash } = require('../helpers/hashing');
-const { shipsToArrShips } = require('../helpers/converters');
+const { shipsToArrShips, boardToBN } = require('../helpers/converters');
 
 // Defaults
 const DEFAULT_INIT_VALUE = web3.utils.toWei('0.001', 'ether');
@@ -50,6 +49,18 @@ const LOSING_BOMBS = [
 ]
 
 // Functions
+const logTransactionCost = (transcationDesc, result) => {
+    const { gasUsed } = result.receipt;
+    const costEth = web3.utils.fromWei((gasUsed * 1000000000).toString());
+    const costFiat = Math.round(costEth * 200 * 100) / 100; 
+    console.log(
+        `${ transcationDesc }`,
+        `\nGas used: ${ gasUsed }`, 
+        `\nEstimated costs (10 Gwei per gas and $200 per ETH):`,
+        `${ costEth } ETH (~$${ costFiat })\n`
+    );
+}
+
 const countPlacedBombs = (bombs) => {
     return bombs.reduce((a, b) => a + b.filter(bomb => bomb).length, 0);
 }
@@ -70,6 +81,7 @@ const initGameContract = async (
         joinTimeoutBlocks,
         { value: initValue }
     );
+    logTransactionCost('Game creation', result);
     return result.logs[0].args._gameIndex;
 }
 
@@ -77,11 +89,13 @@ const placeBombsWithValidCost = async (gameIndex, bombs = DEFAULT_BOMBS) => {
     const MainInstance = await MainContract.deployed();
     const game = await MainInstance.games(gameIndex);
 
-    return await MainInstance.setBombs(
+    const result = await MainInstance.setBombs(
         gameIndex,
-        bombs,
+        boardToBN(bombs),
         { value: countPlacedBombs(bombs) * game.bombCost }
     );
+    logTransactionCost('Bombs placement', result);
+    return result;
 }
 
 // Wait / skip until given block number is reached (use like: await untilBlock(10))
@@ -128,7 +142,7 @@ it('Should disallow placing bombs if not enough wei sent', async function() {
     await truffleAssert.reverts(
         MainInstance.setBombs(
             gameIndex,
-            DEFAULT_BOMBS,
+            boardToBN(DEFAULT_BOMBS),
             { value: countPlacedBombs(DEFAULT_BOMBS) * DEFAULT_BOMB_COST - 1 }
         ),
         'Not enough wei sent.'
@@ -167,7 +181,8 @@ it('Should allow creator claim if he won', async function() {
     const gameIndex = await initGameContract();
     // Place bombs
     await placeBombsWithValidCost(gameIndex, LOSING_BOMBS);
-    await MainInstance.claimCreatorWin(gameIndex, shipsToArrShips(DEFAULT_SHIPS), DEFAULT_SEED);
+    let result = await MainInstance.claimCreatorWin(gameIndex, shipsToArrShips(DEFAULT_SHIPS), DEFAULT_SEED);
+    logTransactionCost('Creator claim', result);
     // TODO: Some additional asserts
 });
 
@@ -193,7 +208,7 @@ it('Should disallow caliming join timeout return after the game has started.', a
     // Place bombs
     await MainInstance.setBombs(
         gameIndex,
-        DEFAULT_BOMBS,
+        boardToBN(DEFAULT_BOMBS),
         { value: countPlacedBombs(DEFAULT_BOMBS) * DEFAULT_BOMB_COST }
     );
 
@@ -216,7 +231,7 @@ it('Should disallow placing less than 25 bombs', async function() {
     }
 
     await truffleAssert.reverts(
-        MainInstance.setBombs(gameIndex, bombsBoard, { value: DEFAULT_BOMB_COST * 24 }),
+        MainInstance.setBombs(gameIndex, boardToBN(bombsBoard), { value: DEFAULT_BOMB_COST * 24 }),
         'You need to place at least 25 bombs.'
     );
 });

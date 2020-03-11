@@ -3,7 +3,7 @@ import axios from 'axios';
 import MainContractAbi from '../contracts/GameOfShips.json';
 import TruffleContract from "@truffle/contract";
 import { round } from './math';
-import { shipsToBuffer } from './converters';
+import { shipsToBuffer, boardToBN, BNToBoard } from './converters';
 import { sha256 } from './hashing';
 import Cookies from 'universal-cookie';
 
@@ -88,6 +88,11 @@ export default class ContractsManager {
         return this._web3;
     }
 
+    getMainContractInstance = async () => {
+        await this.load();
+        return this._mainContractInstance;
+    }
+
     fetchUsersGames = async () => {
         await this.load();
         const userAddr = this._web3.currentProvider.selectedAddress;
@@ -134,13 +139,15 @@ export default class ContractsManager {
 
         const originalData = await this._mainContractInstance.games(index);
 
+        if (this.isEmptyAddr(originalData.creator)) return null;
+
         return {
             creationHash: originalData.creationHash,
             prize: round(this._web3.utils.fromWei(originalData.prize), 8),
             bombCost: round(this._web3.utils.fromWei(originalData.bombCost), 8),
             joinTimeoutBlockNumber: originalData.joinTimeoutBlockNumber.toNumber(),
             revealTimeoutBlocks: originalData.revealTimeoutBlocks.toNumber(),
-            bombsBoard: await this._mainContractInstance.getBombs(index), // TODO: Only when necessary?
+            bombsBoard: BNToBoard(originalData.bombsBoard),
             creatorAddr: this.isEmptyAddr(originalData.creator) ? null : originalData.creator,
             bomberAddr: this.isEmptyAddr(originalData.bomber) ? null : originalData.bomber
         };
@@ -199,7 +206,7 @@ export default class ContractsManager {
 
         return await this._mainContractInstance.setBombs(
             gameIndex,
-            bombsBoard,
+            boardToBN(bombsBoard),
             { from: playerAddr, value: this._web3.utils.toWei(ethCost.toString()) }
         );
     }

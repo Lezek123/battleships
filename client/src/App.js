@@ -63,12 +63,14 @@ const StartScreenLink = styled(BigButton)`
 class App extends Component {
 	state = {
 		initialized: false,
+		mainContractAddr: null,
 	}
 
 	async componentWillMount() {
 		this._contractsManager = new ContractsManager();
 		this._web3 = await this._contractsManager.getWeb3();
-		this.setState({ initialized: true });
+		const MainContractInstance = await this._contractsManager.getMainContractInstance();
+		this.setState({ initialized: true, mainContractAddr: MainContractInstance.address });
 	}
 
 	handleGameCreation = async (gameData) => {
@@ -79,6 +81,7 @@ class App extends Component {
 		if (!this.state.initialized) return <StyledApp><Loader /></StyledApp>;
 		return (
 			<StyledApp>
+				<h1>{ this.state.mainContractAddr }</h1>
 				{ this.props.location.pathname !== '/' && <Nav fixed={1}/> }
 				<AppBody>
 					<Switch>
