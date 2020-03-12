@@ -7,6 +7,8 @@ import { centerFlex } from '../styles/basic';
 import Loader from './loader';
 import { PrizeIcon } from '../constants/icons';
 import { breakpoints as bp, breakpointHit } from '../constants/breakpoints';
+import { BigButton, themes } from './navigation/buttons';
+import ContractManager from '../helpers/contracts';
 
 const StyledGame = styled.div`
     width: 100%;
@@ -51,50 +53,80 @@ const WinnerIcon = styled.div`
     margin-right: 8px;
 `;
 
+const ClaimedInfo = styled.div``;
+
 export default class PendingGame extends Component {
     state = {
-        placedShips: null,
-        shipsBoard: null
+        revealedShips: null,
+        revealedSeed: null,
+        shipsBoard: null,
+        isCreatorWinner: null,
+        isUserWinner: null,
+        claimTx: null,
     };
 
     componentWillMount = async () => {
+        this._contractManager = new ContractManager();
         const revealedDataRes = await fetch('/reveal/' + this.props.index);
         const revealedData = await revealedDataRes.json();
-        if (revealedData && revealedData.ships) this.setState({ placedShips: revealedData.ships });
+        if (revealedData && revealedData.ships) {
+            this.setState({
+                revealedShips: revealedData.ships,
+                revealedSeed: revealedData.seed,
+            });
+        }
     }
 
-    determineWinner = () => {
+    determineWinner = async () => {
         const { shipsBoard } = this.state;
-        const { gameData: { bombsBoard } } = this.props;
+        const { gameData: { bombsBoard, creatorAddr, bomberAddr } } = this.props;
 
         if (shipsBoard) {
             const compareRes = compareBoards(shipsBoard, bombsBoard);
-            const creatorWin = compareRes.some(row => row.some(resField => resField === 'a'));
-            return creatorWin ? 'Creator' : 'Bomber';
-        }
+            const isCreatorWinner = compareRes.some(row => row.some(resField => resField === 'a'));
 
-        return null;
+            const userAddr = await this._contractManager.getUserAddr();
+            const isUserWinner = (
+                ((await this._contractManager.compareAddr(creatorAddr, userAddr)) && isCreatorWinner)
+                || ((await this._contractManager.compareAddr(bomberAddr, userAddr)) && !isCreatorWinner)
+            );
+            this.setState({ isCreatorWinner, isUserWinner })
+        }
     }
 
     recieveShipsBoard = (board) => {
-        if (this.state.placedShips) {
-            this.setState({ shipsBoard: board });
+        if (this.state.revealedShips) {
+            this.setState({ shipsBoard: board }, this.determineWinner);
+        }
+    }
+
+    claimWin = async () => {
+        const { index: gameIndex } = this.props;
+        const { revealedShips, revealedSeed } = this.state;
+        try {
+            let result = await this._contractManager.finishGame(
+                gameIndex,
+                revealedShips,
+                Buffer.from(revealedSeed, 'base64')
+            );
+            this.setState({ claimTx: result.tx })
+        } catch(e) {
+            // TOOD: Handle potential error
         }
     }
     
     render() {
-        const { placedShips } = this.state;
-        const { gameData: { bombsBoard } } = this.props;
-        const winner = this.determineWinner();
+        const { revealedShips, isCreatorWinner, isUserWinner, claimTx } = this.state;
+        const { gameData: { bombsBoard, prize, payedBombCost } } = this.props;
 
         return (
             <StyledGame>
                 <Snapshots>
                     <ShipsSnapshot>
-                        { placedShips ? 
+                        { revealedShips ? 
                             <>
                                 <SnapshotTitle>Ships:</SnapshotTitle>
-                                <ShipsBoard onChange={ this.recieveShipsBoard } lockedShips={ placedShips }/>
+                                <ShipsBoard onChange={ this.recieveShipsBoard } lockedShips={ revealedShips }/>
                             </>
                             :
                             <Loader text="Checking for revealed ships board..."/>
@@ -105,7 +137,24 @@ export default class PendingGame extends Component {
                         <BombsBoard lockedBoard={ bombsBoard }/>
                     </BombsSnapshot>
                 </Snapshots>
-                { winner && <WinnerInfo><WinnerIcon><PrizeIcon /></WinnerIcon> Winner: { winner }</WinnerInfo> }
+                {/* TODO: Reveal timeout countdown, revealed ships check interval etc. */}
+                { (isCreatorWinner !== null) && (
+                    <WinnerInfo>
+                        <WinnerIcon><PrizeIcon /></WinnerIcon> Winner: { isCreatorWinner ? 'Creator' : 'Bomber' }
+                    </WinnerInfo>)
+                }
+                { isUserWinner && (
+                    !claimTx ? (
+                        <BigButton theme={themes.primary} onClick={this.claimWin} shining>
+                            Claim { isCreatorWinner ? (prize + payedBombCost) : prize } ETH!
+                        </BigButton>
+                    ) : (
+                        <ClaimedInfo>
+                            Reward has been claimed!<br/>
+                            Transaction: { claimTx }
+                        </ClaimedInfo>
+                    )
+                ) }
             </StyledGame>
         )
     }

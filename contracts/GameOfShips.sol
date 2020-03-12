@@ -24,7 +24,10 @@ contract GameOfShips {
     }
 
     event GameCreated(uint32 _gameIndex, address _creator);
-    event BombsPlaced(uint32 _gameIndex, address _bomber);
+    event BombsPlaced(uint32 _gameIndex, address _bomber, uint128 _bombsBoard);
+    event GameFinished(uint32 _gameIndex, Ship[5] _ships);
+    event RevealTimeout(uint32 _gameIndex);
+    event JoinTimeout(uint32 _gameIndex);
 
     mapping (uint32 => Game) public games;
     uint32 lastGameIndex = 0;
@@ -55,6 +58,7 @@ contract GameOfShips {
     
     function setBombs(uint32 _gameIndex, uint128 _bombsBoard) public payable {
         Game storage game = games[_gameIndex];
+        require(game.creator != address(0), 'Game not found.');
         require(game.bomber == address(0), "Bomber already defined.");
         uint bombsCost = getBombsCost(_bombsBoard, game.bombCost);
         require(msg.value >= bombsCost, "Not enough wei sent.");
@@ -64,7 +68,7 @@ contract GameOfShips {
         game.bombsBoard = _bombsBoard;
         game.revealTimeoutBlockNumber = block.number + game.revealTimeoutBlocks;
         game.payedBombCost = msg.value;
-        emit BombsPlaced(_gameIndex, msg.sender);
+        emit BombsPlaced(_gameIndex, msg.sender, _bombsBoard);
     }
 
     function getBoardFieldAtPosition(uint128 _bombsBoard, uint128 _position) private view returns(bool) {
@@ -86,28 +90,45 @@ contract GameOfShips {
     }
 
     function claimJoinTimeoutReturn(uint32 _gameIndex) public {
-        Game storage game = games[_gameIndex];
+        // Store in memory, because we want to use it's values AFTER deleting from storage
+        Game memory game = games[_gameIndex];
+        require(game.creator != address(0), 'Game not found.');
         require(block.number > game.joinTimeoutBlockNumber, "Timeout not reached yet.");
         require(game.bomber == address(0), "The game already started.");
+        delete games[_gameIndex];
+        emit JoinTimeout(_gameIndex);
         game.creator.transfer(game.prize);
     }
     
-    function claimCreatorWin(uint32 _gameIndex, Ship[5] memory _ships, bytes32 _seed) public {
-        Game storage game = games[_gameIndex];
+    function finishGame(uint32 _gameIndex, Ship[5] memory _ships, bytes32 _seed) public {
+        // Store in memory, because we want to use it's values AFTER deleting from storage
+        Game memory game = games[_gameIndex];
+        require(game.creator != address(0), 'Game not found.');
         require(getShipsHash(_ships, _seed) == game.creationHash, "Invalid hash provided.");
         uint128 shipsBoard = validateShipsAndCreateBoard(_ships);
-        require((shipsBoard & game.bombsBoard) != shipsBoard, "Creator is not a winner.");
-        game.creator.transfer(game.prize + game.payedBombCost);
-        // TODO: Emit event and remove game from active games list?
+        delete games[_gameIndex];
+        emit GameFinished(_gameIndex, _ships);
+        if ((shipsBoard & game.bombsBoard) == shipsBoard) {
+            // Bomber won
+            game.bomber.transfer(game.prize);
+            game.creator.transfer(game.payedBombCost);
+        }
+        else {
+            // Creator won
+            game.creator.transfer(game.prize + game.payedBombCost);
+        }
     }
     
-    function claimBomberWin(uint32 _gameIndex) public {
-        Game storage game = games[_gameIndex];
+    function claimBomberWinByTimeout(uint32 _gameIndex) public {
+        // Store in memory, because we want to use it's values AFTER deleting from storage
+        Game memory game = games[_gameIndex];
+        require(game.creator != address(0), 'Game not found.');
         require(game.bomber != address(0), "Bomber is not defined.");
         require(block.number > game.revealTimeoutBlockNumber, "Timeout not reached yet.");
+        delete games[_gameIndex];
+        emit RevealTimeout(_gameIndex);
         game.bomber.transfer(game.prize);
         game.creator.transfer(game.payedBombCost);
-        // TODO: Emit event and remove game from active games list?
     }
     
     function getShipsHash(Ship[5] memory _ships, bytes32 _seed) private pure returns(bytes32) {

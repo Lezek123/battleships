@@ -25,7 +25,7 @@ const PreviewBoxInner = styled.div`
 `;
 const GameStatusLabel = styled.div`
     height: 50px;
-    background: rgba(0, 0, 0, 0.2);
+    background: ${ props => props.status == 'PENDING' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)' };
     margin: 0 -20px;
     margin-bottom: 10px;
     padding: 0 30px;
@@ -110,7 +110,7 @@ export default class GamePreviewBox extends Component {
         const { game } = this.props;
         return (
             <StyledGamePreviewBox>
-                <GameStatusLabel>
+                <GameStatusLabel status={game.data.bomberAddr ? 'PENDING' : 'NEW' }>
                     {game.data.bomberAddr ? 'PENDING' : 'NEW' }
                 </GameStatusLabel>
                 <PreviewBoxInner>

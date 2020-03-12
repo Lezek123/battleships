@@ -1,14 +1,9 @@
 import Web3 from 'web3';
 const BigNumber = Web3.utils.BN;
 
-export const shipsToBuffer = (ships, seed) => {
-    let buffers = ships.map(ship => {
-        let { x, y, vertical } = ship;
-        return Buffer.from([x, y, vertical ? 1 : 0]);
-    });
-    buffers.push(seed);
-    return Buffer.concat(buffers);
-}
+export const shipsToArrShips = (ships) => ships.map(
+    ({ x, y, vertical }) => [x, y, vertical]
+);
 
 export const boardToBN = (board) => {
     const flattenBoard = board.reduce((arr, row) => arr.concat(row), []);
