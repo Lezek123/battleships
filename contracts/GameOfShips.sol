@@ -23,9 +23,10 @@ contract GameOfShips {
         bool vertical;
     }
 
-    event GameCreated(uint32 _gameIndex, address _creator);
+    event GameCreated(uint32 _gameIndex, address _creator, uint _prize, uint _bombCost);
     event BombsPlaced(uint32 _gameIndex, address _bomber, uint128 _bombsBoard);
-    event GameFinished(uint32 _gameIndex, Ship[5] _ships);
+    event ShipsRevealed(uint32 _gameIndex, Ship[5] _ships);
+    event GameFinished(uint32 _gameIndex);
     event RevealTimeout(uint32 _gameIndex);
     event JoinTimeout(uint32 _gameIndex);
 
@@ -53,7 +54,7 @@ contract GameOfShips {
         game.prize = msg.value;
         game.revealTimeoutBlocks = _revealTimeoutBlocks;
         game.joinTimeoutBlockNumber = block.number + _joinTimeoutBlocks;
-        emit GameCreated(lastGameIndex, msg.sender);
+        emit GameCreated(lastGameIndex, msg.sender, msg.value, _bombCost);
     }
     
     function setBombs(uint32 _gameIndex, uint128 _bombsBoard) public payable {
@@ -97,6 +98,7 @@ contract GameOfShips {
         require(game.bomber == address(0), "The game already started.");
         delete games[_gameIndex];
         emit JoinTimeout(_gameIndex);
+        emit GameFinished(_gameIndex);
         game.creator.transfer(game.prize);
     }
     
@@ -107,7 +109,8 @@ contract GameOfShips {
         require(getShipsHash(_ships, _seed) == game.creationHash, "Invalid hash provided.");
         uint128 shipsBoard = validateShipsAndCreateBoard(_ships);
         delete games[_gameIndex];
-        emit GameFinished(_gameIndex, _ships);
+        emit ShipsRevealed(_gameIndex, _ships);
+        emit GameFinished(_gameIndex);
         if ((shipsBoard & game.bombsBoard) == shipsBoard) {
             // Bomber won
             game.bomber.transfer(game.prize);
@@ -127,6 +130,7 @@ contract GameOfShips {
         require(block.number > game.revealTimeoutBlockNumber, "Timeout not reached yet.");
         delete games[_gameIndex];
         emit RevealTimeout(_gameIndex);
+        emit GameFinished(_gameIndex);
         game.bomber.transfer(game.prize);
         game.creator.transfer(game.payedBombCost);
     }

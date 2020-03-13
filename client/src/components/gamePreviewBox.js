@@ -9,11 +9,11 @@ import { breakpoints as bp, breakpointHit } from '../constants/breakpoints';
 
 const StyledGamePreviewBox = styled.div`
     background: rgba(0, 0, 0, 0.3);
-    margin: 30px 0;
+    margin: 20px;
     padding: 20px;
     padding-top: 0;
     border-radius: 20px;
-    width: 100%;
+    width: calc(100% - 40px);
     position: relative;
 `;
 const PreviewBoxInner = styled.div`
@@ -117,8 +117,10 @@ export default class GamePreviewBox extends Component {
                     <GameData>
                         <GameDataRow icon={<PrizeIcon />} dataName={'Prize'} dataVal={game.data.prize} unit={'ETH'} />
                         <GameDataRow icon={<BombCostIcon />} dataName={ 'Bomb cost' } dataVal={game.data.bombCost} unit={'ETH'}/>
-                        <GameDataRow icon={<JoinTimeoutIcon />} dataName={'Join timeout block'} dataVal={'#'+game.data.joinTimeoutBlockNumber} />
-                        <GameDataRow icon={<RevealTimeoutIcon />} dataName={'Reveal timeout'} dataVal={game.data.revealTimeoutBlocks} unit={'blocks'}/>
+                        { !game.historical && (<>
+                            <GameDataRow icon={<JoinTimeoutIcon />} dataName={'Join timeout block'} dataVal={'#'+game.data.joinTimeoutBlockNumber} />
+                            <GameDataRow icon={<RevealTimeoutIcon />} dataName={'Reveal timeout'} dataVal={game.data.revealTimeoutBlocks} unit={'blocks'}/>
+                        </>) }
                     </GameData>
                     <JoinButton theme={ themes.primary } as={ Link } to={ generateGamePath(game.index) }>JOIN</JoinButton>
                 </PreviewBoxInner>

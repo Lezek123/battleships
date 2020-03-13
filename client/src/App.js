@@ -74,19 +74,20 @@ class App extends Component {
 	}
 
 	handleGameCreation = async (gameData) => {
-		this._contractsManager.createGame(gameData);
+		await this._contractsManager.createGame(gameData);
+		window.location = MY_GAMES_PATH;
 	}
 
 	render() {
 		if (!this.state.initialized) return <StyledApp><Loader /></StyledApp>;
 		return (
 			<StyledApp>
-				<h1>{ this.state.mainContractAddr }</h1>
+				{/* <h1>{ this.state.mainContractAddr }</h1> */}
 				{ this.props.location.pathname !== '/' && <Nav fixed={1}/> }
 				<AppBody>
 					<Switch>
 						<Route path={ MY_GAMES_PATH }>
-							<GamesListWrapper fetchMethod={ this._contractsManager.fetchActiveUsersGames } />
+							<GamesListWrapper fetchMethod={ this._contractsManager.fetchUsersGames } />
 						</Route>
 						<Route path={ GAME_PATH } render={ props => {
 							return <Game index={props.match.params.id} />;
@@ -95,7 +96,7 @@ class App extends Component {
 							<CreateGameForm onSubmit={ this.handleGameCreation } />
 						</Route>
 						<Route path={ GAMES_LIST_PATH }>
-							<GamesListWrapper fetchMethod={ this._contractsManager.fetchActiveGames } />
+							<GamesListWrapper fetchMethod={ this._contractsManager.fetchAllGames } />
 						</Route>
 						<Route path="/">
 							<AppHeader>
