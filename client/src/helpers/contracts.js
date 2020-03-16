@@ -97,7 +97,8 @@ export default class ContractsManager {
         return this._web3.currentProvider.selectedAddress;
     }
 
-    fetchUsersGames = async (status) => {
+    // If status is null then fetch all active
+    fetchUsersGames = async (status = null) => {
         await this.load();
         const userAddr = await this.getUserAddr();
         const indexes = await this.queryIndexesByEvents([
@@ -107,20 +108,21 @@ export default class ContractsManager {
         let games = status === GAME_STATUSES.FINISHED ?
             await this.fetchGamesHistoricalData(indexes)
             : await this.fetchActiveGamesByIndexes(indexes);
-        if (status !== GAME_STATUSES.FINISHED) {
+        if (status && status !== GAME_STATUSES.FINISHED) {
             games = games.filter(({data}) => data.status === status);
         }
 
         return games;
     }
 
-    fetchAllGames = async (status) => {
+    // If status is null then fetch all active
+    fetchAllGames = async (status = null) => {
         await this.load();
         let indexes, games;
         if (status !== GAME_STATUSES.FINISHED) {
             indexes = await this.queryIndexesByEvents([{eventName: EVENTS.GAME_CREATED}]);
             games = await this.fetchActiveGamesByIndexes(indexes);
-            games = games.filter(({data}) => data.status === status)
+            if (status) games = games.filter(({data}) => data.status === status)
         }
         else {
             indexes = await this.queryIndexesByEvents([{eventName:EVENTS.GAME_FINISHED}]);

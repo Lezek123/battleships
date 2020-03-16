@@ -19,6 +19,17 @@ export const BNToBoard = (bn) => {
     return Array.from(Array(10)).map((row, y) => flattenBoard.slice(y*10, (y+1)*10));
 }
 
+export const shipsToBoard = (ships) => {
+    let placedFields = {};
+    ships.forEach((ship) => {
+        if (ship.vertical) for (let y = ship.y; y < ship.y + 4; ++y) placedFields[y*10 + ship.x] = true;
+        else for (let x = ship.x; x < ship.x + 4; ++x) placedFields[ship.y*10 + x] = true;
+    });
+    return Array.from(Array(10)).map((row, y) =>
+        Array.from(Array(10)).map((field, x) => Boolean(placedFields[y*10 + x]))
+    );
+}
+
 export const secondsToStringInterval = (seconds, showSeconds = true) => {
     const intervalParts = {
         d: parseInt(seconds / (60 * 60 * 24)),

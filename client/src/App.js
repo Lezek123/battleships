@@ -14,6 +14,7 @@ import Game from './components/gamePage';
 import ContractsManager from './helpers/contracts';
 import Loader from './components/loader';
 import ShootingShipLogo from './components/shootingShipLogo';
+import CalimNotifications from './components/claimNotifications';
 
 const StyledApp = styled.div`
 	background-color: ${ colorWithAlpha(color.MAIN_BG, 0.9) };
@@ -82,8 +83,10 @@ class App extends Component {
 		if (!this.state.initialized) return <StyledApp><Loader /></StyledApp>;
 		return (
 			<StyledApp>
-				{/* <h1>{ this.state.mainContractAddr }</h1> */}
-				{ this.props.location.pathname !== '/' && <Nav fixed={1}/> }
+				{ this.props.location.pathname !== '/' && (<>
+					<Nav />
+					<CalimNotifications />
+				</>) }
 				<AppBody>
 					<Switch>
 						<Route path={ MY_GAMES_PATH }>

@@ -27,6 +27,8 @@ const GamesListTabs = styled.div`
     max-width: 800px;
 `;
 const GamesListTab = styled(BasicButton)`
+    min-width: 0;
+    width: calc(33.33% - 2px);
     border-top-left-radius: 20px;
     border-top-right-radius: 20px;
     border-bottom-left-radius: 0;

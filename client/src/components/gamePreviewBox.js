@@ -122,7 +122,7 @@ export default class GamePreviewBox extends Component {
         return (
             <StyledGamePreviewBox>
                 <GameStatusLabel status={ game.data.status }>
-                    { statusLabels[game.data.status] }
+                    Game #{ game.index } ({ statusLabels[game.data.status] })
                 </GameStatusLabel>
                 <PreviewBoxInner>
                     <GameData>

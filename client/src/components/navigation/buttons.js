@@ -36,7 +36,7 @@ const BasicButton = styled.button`
     color: ${ props => props.theme.color } !important;
     background: ${ props => props.theme.bgColor };
     text-decoration: none !important;
-    width: 200px;
+    min-width: 200px;
     text-align: center;
     box-shadow: none;
     transition: box-shadow 0.5s, background-color 0.5s, color 0.5s, padding 0.5s;
@@ -75,7 +75,7 @@ const BigButton = styled(BasicButton)`
 const SmallButton = styled(BasicButton)`
     padding: 10px;
     font-size: 18px;
-    width: 150px;
+    min-width: 150px;
 `;
 
 export { themes, BasicButton, BigButton, SmallButton };
