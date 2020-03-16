@@ -54,6 +54,7 @@ const GamesListTab = styled(BasicButton)`
 `;
 const GamesListContent = styled.div`
     margin-bottom: auto;
+    padding: 20px;
     width: 100%;
     border: 3px solid #777;
     border-radius: 20px;

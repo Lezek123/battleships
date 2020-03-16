@@ -399,7 +399,7 @@ it('Should disallow caliming join timeout return after the game has started.', a
 
     assert.equal(joinTimeoutBlockNumber, currentBlockNumber + DEFAULT_JOIN_TIMEOUT_BLOCKS);
     // Wait until the timeout
-    await untilBlock(joinTimeoutBlockNumber + 1);
+    await untilBlock(joinTimeoutBlockNumber);
     // Place bombs
     await placeBombsWithValidCost(gameIndex);
 
@@ -413,7 +413,7 @@ it('Should allow caliming valid join timeout return.', async function() {
     const joinTimeoutBlockNumber = parseInt(game.joinTimeoutBlockNumber);
 
     // Wait until the timeout
-    await untilBlock(joinTimeoutBlockNumber + 1);
+    await untilBlock(joinTimeoutBlockNumber);
 
     const creatorAddr = await getDefaultCreatorAddress();
     const creatorBalanceBefore = web3.utils.toBN(await web3.eth.getBalance(creatorAddr));
@@ -435,7 +435,7 @@ it('Should disallow caliming join timeout return twice.', async function() {
     const joinTimeoutBlockNumber = parseInt(game.joinTimeoutBlockNumber);
 
     // Wait until the timeout
-    await untilBlock(joinTimeoutBlockNumber + 1);
+    await untilBlock(joinTimeoutBlockNumber);
 
     await MainInstance.claimJoinTimeoutReturn(gameIndex);
     await truffleAssert.fails(MainInstance.claimJoinTimeoutReturn(gameIndex));

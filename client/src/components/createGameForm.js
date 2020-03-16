@@ -4,10 +4,11 @@ import NumberInput from './fields/NumberInput';
 import Submit from './fields/Submit';
 import { centerFlex } from '../styles/basic';
 import styled from 'styled-components';
-import { secondsToStringInterval } from '../helpers/converters';
+import { blocksToRoundedInterval, AVG_BLOCK_TIME } from '../helpers/converters';
 import { FormField, FieldInfo } from './fields/formFields';
 import { BombCostIcon, PrizeIcon, JoinTimeoutIcon, RevealTimeoutIcon } from '../constants/icons';
 import { breakpointHit, breakpointNotHit, breakpoints as bp } from '../constants/breakpoints';
+import Loader from './loader';
 
 const StyledGameFormContainer = styled.div`
     ${ centerFlex('column') }
@@ -45,8 +46,8 @@ export default class CreateGameForm extends Component {
         data: {
             initialValue: '0.01',
             bombCost: '0.0002',
-            joinTimeoutBlocks: '20',
-            revealTimeoutBlocks: '20',
+            joinTimeoutBlocks: Math.round(24 * 60 * 60 / AVG_BLOCK_TIME).toString(),
+            revealTimeoutBlocks: Math.round(24 * 60 * 60 / AVG_BLOCK_TIME).toString(),
             ships: [],
         },
         validity: {
@@ -54,7 +55,8 @@ export default class CreateGameForm extends Component {
             bombCost: true,
             joinTimeoutBlocks: true,
             revealTimeoutBlocks: true
-        }
+        },
+        creating: false,
     }
 
     onInputChange = (e, modifiedValue = null, errors = []) => {
@@ -92,13 +94,14 @@ export default class CreateGameForm extends Component {
         const { onSubmit } = this.props;
 
         if (this.isValid()) {
-            onSubmit(this.state.data);
+            this.setState({ creating: true }, () => onSubmit(this.state.data));
         }
     }
 
     render() {
-        const { data, validity } = this.state;
+        const { data, validity, creating } = this.state;
 
+        if (creating) return <Loader text="Creating a new game..." />;
         return (
             <StyledGameFormContainer>
                 <h1>Create a game</h1>
@@ -144,13 +147,13 @@ export default class CreateGameForm extends Component {
                                     onChange={ this.onInputChange }
                                     unit={ 'blocks' }
                                     min={ 10 }
-                                    max={ 120 }
+                                    max={ 43200 }
                                     required={ true }
                                     icon={ <RevealTimeoutIcon /> }
                                     />
                                     { (validity.revealTimeoutBlocks) && (
                                         <FieldInfo
-                                            text= { `For 14s per block it's ` + secondsToStringInterval(data.revealTimeoutBlocks * 14) } />
+                                            text= { `For ${ AVG_BLOCK_TIME }s per block it's ` + blocksToRoundedInterval(data.revealTimeoutBlocks) } />
                                     ) }
                             </FormField>
                             <FormField>
@@ -167,7 +170,7 @@ export default class CreateGameForm extends Component {
                                         />
                                 { (validity.joinTimeoutBlocks) && (
                                     <FieldInfo
-                                        text= { `For 14s per block it's ` + secondsToStringInterval(data.joinTimeoutBlocks * 14) } />
+                                        text= { `For ${ AVG_BLOCK_TIME }s per block it's ` + blocksToRoundedInterval(data.joinTimeoutBlocks) } />
                                 ) }
                             </FormField>
                         </ConfigSection>

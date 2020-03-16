@@ -5,10 +5,11 @@ import ShipsBoard from './shipsBoard';
 import BombsBoard from './bombsBoard';
 import { centerFlex } from '../styles/basic';
 import Loader from './loader';
-import { PrizeIcon } from '../constants/icons';
+import { PrizeIcon, RevealTimeoutIcon } from '../constants/icons';
 import { breakpoints as bp, breakpointHit } from '../constants/breakpoints';
-import { BigButton, themes } from './navigation/buttons';
 import ContractManager from '../helpers/contracts';
+import TimeoutClaim from './timeoutClaim';
+import Claim from './claim';
 
 const StyledGame = styled.div`
     width: 100%;
@@ -53,20 +54,19 @@ const WinnerIcon = styled.div`
     margin-right: 8px;
 `;
 
-const ClaimedInfo = styled.div``;
-
 export default class PendingGame extends Component {
     state = {
         revealedShips: null,
         revealedSeed: null,
         shipsBoard: null,
-        isCreatorWinner: null,
+        winner: null,
         isUserWinner: null,
-        claimTx: null,
+        revealTimeoutReached: false,
     };
 
     componentWillMount = async () => {
         this._contractManager = new ContractManager();
+        // TODO: This should actually be checked via interval
         const revealedDataRes = await fetch('/reveal/' + this.props.index);
         const revealedData = await revealedDataRes.json();
         if (revealedData && revealedData.ships) {
@@ -79,18 +79,14 @@ export default class PendingGame extends Component {
 
     determineWinner = async () => {
         const { shipsBoard } = this.state;
-        const { gameData: { bombsBoard, creatorAddr, bomberAddr } } = this.props;
+        const { gameData: { bombsBoard, isUserCreator, isUserBomber } } = this.props;
 
         if (shipsBoard) {
             const compareRes = compareBoards(shipsBoard, bombsBoard);
             const isCreatorWinner = compareRes.some(row => row.some(resField => resField === 'a'));
 
-            const userAddr = await this._contractManager.getUserAddr();
-            const isUserWinner = (
-                ((await this._contractManager.compareAddr(creatorAddr, userAddr)) && isCreatorWinner)
-                || ((await this._contractManager.compareAddr(bomberAddr, userAddr)) && !isCreatorWinner)
-            );
-            this.setState({ isCreatorWinner, isUserWinner })
+            const isUserWinner = (isCreatorWinner && isUserCreator) || (!isCreatorWinner && isUserBomber)
+            this.setState({ isUserWinner, winner: isCreatorWinner ? 'Creator' : 'Bomber' })
         }
     }
 
@@ -103,21 +99,16 @@ export default class PendingGame extends Component {
     claimWin = async () => {
         const { index: gameIndex } = this.props;
         const { revealedShips, revealedSeed } = this.state;
-        try {
-            let result = await this._contractManager.finishGame(
-                gameIndex,
-                revealedShips,
-                Buffer.from(revealedSeed, 'base64')
-            );
-            this.setState({ claimTx: result.tx })
-        } catch(e) {
-            // TOOD: Handle potential error
-        }
+        return await this._contractManager.finishGame(
+            gameIndex,
+            revealedShips,
+            Buffer.from(revealedSeed, 'base64')
+        );
     }
-    
+
     render() {
-        const { revealedShips, isCreatorWinner, isUserWinner, claimTx } = this.state;
-        const { gameData: { bombsBoard, prize, payedBombCost } } = this.props;
+        const { revealedShips, winner, isUserWinner, revealTimeoutReached } = this.state;
+        const { index, gameData: { bombsBoard, prize, payedBombCost, revealTimeoutBlockNumber, isUserCreator, isUserBomber } } = this.props;
 
         return (
             <StyledGame>
@@ -137,24 +128,20 @@ export default class PendingGame extends Component {
                         <BombsBoard lockedBoard={ bombsBoard }/>
                     </BombsSnapshot>
                 </Snapshots>
-                {/* TODO: Reveal timeout countdown, revealed ships check interval etc. */}
-                { (isCreatorWinner !== null) && (
+                <TimeoutClaim
+                    timeoutName="Reveal"
+                    timeoutIcon={ <RevealTimeoutIcon /> }
+                    timeoutBlock={ revealTimeoutBlockNumber }
+                    canUserClaim={ isUserBomber }
+                    claimMethod={ async () => await this._contractManager.claimBomberTimeoutWin(index) }
+                    claimAmount={ prize }/>
+                {/* After winner is known */}
+                { (winner !== null) && (
                     <WinnerInfo>
-                        <WinnerIcon><PrizeIcon /></WinnerIcon> Winner: { isCreatorWinner ? 'Creator' : 'Bomber' }
-                    </WinnerInfo>)
-                }
-                { isUserWinner && (
-                    !claimTx ? (
-                        <BigButton theme={themes.primary} onClick={this.claimWin} shining>
-                            Claim { isCreatorWinner ? (prize + payedBombCost) : prize } ETH!
-                        </BigButton>
-                    ) : (
-                        <ClaimedInfo>
-                            Reward has been claimed!<br/>
-                            Transaction: { claimTx }
-                        </ClaimedInfo>
-                    )
+                        <WinnerIcon><PrizeIcon /></WinnerIcon> Winner: { winner }
+                    </WinnerInfo>
                 ) }
+                { isUserWinner && <Claim amount={ isUserCreator ? payedBombCost + prize : prize } claimMethod={ this.claimWin }/> }
             </StyledGame>
         )
     }

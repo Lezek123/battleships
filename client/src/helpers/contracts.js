@@ -108,7 +108,7 @@ export default class ContractsManager {
             await this.fetchGamesHistoricalData(indexes)
             : await this.fetchActiveGamesByIndexes(indexes);
         if (status !== GAME_STATUSES.FINISHED) {
-            games = games.filter(({data}) => (status === GAME_STATUSES.IN_PROGRESS) == Boolean(data.bomberAddr));
+            games = games.filter(({data}) => data.status === status);
         }
 
         return games;
@@ -120,7 +120,7 @@ export default class ContractsManager {
         if (status !== GAME_STATUSES.FINISHED) {
             indexes = await this.queryIndexesByEvents([{eventName: EVENTS.GAME_CREATED}]);
             games = await this.fetchActiveGamesByIndexes(indexes);
-            games = games.filter(({data}) => (status === GAME_STATUSES.IN_PROGRESS) == Boolean(data.bomberAddr))
+            games = games.filter(({data}) => data.status === status)
         }
         else {
             indexes = await this.queryIndexesByEvents([{eventName:EVENTS.GAME_FINISHED}]);
@@ -164,17 +164,25 @@ export default class ContractsManager {
 
         if (this.isEmptyAddr(originalData.creator)) return null;
 
-        return {
+        let gameData = {
+            status: this.isEmptyAddr(originalData.bomber) ? GAME_STATUSES.NEW : GAME_STATUSES.IN_PROGRESS,
             creationHash: originalData.creationHash,
             prize: round(this._web3.utils.fromWei(originalData.prize), 8),
             bombCost: round(this._web3.utils.fromWei(originalData.bombCost), 8),
             payedBombCost: round(this._web3.utils.fromWei(originalData.payedBombCost), 8),
             joinTimeoutBlockNumber: originalData.joinTimeoutBlockNumber.toNumber(),
             revealTimeoutBlocks: originalData.revealTimeoutBlocks.toNumber(),
+            revealTimeoutBlockNumber: originalData.revealTimeoutBlockNumber.toNumber(),
             bombsBoard: BNToBoard(originalData.bombsBoard),
             creatorAddr: this.isEmptyAddr(originalData.creator) ? null : originalData.creator,
-            bomberAddr: this.isEmptyAddr(originalData.bomber) ? null : originalData.bomber
+            bomberAddr: this.isEmptyAddr(originalData.bomber) ? null : originalData.bomber,
         };
+
+        const userAddr = await this.getUserAddr();
+        gameData.isUserCreator = this.compareAddr(userAddr, gameData.creatorAddr);
+        gameData.isUserBomber = this.compareAddr(userAddr, gameData.bomberAddr);
+
+        return gameData;
     }
 
     fetchGamesHistoricalData = async (indexes) => {
@@ -183,7 +191,7 @@ export default class ContractsManager {
         for (let index of indexes) {
             const data = await this.fetchGameHistoricalData(index);
             if (!data) continue;
-            games.push({ index, data, historical: true });
+            games.push({ index, data });
         }
 
         return games;
@@ -203,9 +211,10 @@ export default class ContractsManager {
 
         const { _creator, _prize, _bombCost } = eventsData[EVENTS.GAME_CREATED].args;
         const { _bomber, _bombsBoard } = eventsData[EVENTS.BOMBS_PLACED].args;
-        const { _ships } = eventsData[EVENTS.SHIPS_REVEALED]
+        const { _ships } = eventsData[EVENTS.SHIPS_REVEALED];
 
-        return {
+        let gameData = {
+            status: GAME_STATUSES.FINISHED,
             prize: round(this._web3.utils.fromWei(_prize), 8),
             bombCost: round(this._web3.utils.fromWei(_bombCost), 8),
             bombsBoard: BNToBoard(_bombsBoard),
@@ -213,23 +222,31 @@ export default class ContractsManager {
             creatorAddr: this.isEmptyAddr(_creator) ? null : _creator,
             bomberAddr: this.isEmptyAddr(_bomber) ? null : _bomber
         }
+
+        const userAddr = await this.getUserAddr();
+        gameData.isUserCreator = this.compareAddr(userAddr, gameData.creatorAddr);
+        gameData.isUserBomber = this.compareAddr(userAddr, gameData.bomberAddr);
+
+        return gameData;
     }
 
     // Atomic operations for adding/removing seeds to/from seeds cookie:
-
-    addSeedToCookie = (newSeed) => {
-        const seeds = cookies.get('seeds') || [];
-        seeds.push(newSeed);
-        const newSeedsExpiry = new Date(new Date().setFullYear(new Date().getFullYear() + 1)); // One year from now
-        cookies.set('seeds', seeds, { expires: newSeedsExpiry, path: '/' });
+    getStoredSeeds = () => {
+        const seedsJson = window.localStorage.getItem('seeds');
+        return seedsJson ? JSON.parse(seedsJson) : [];
     }
 
-    removeSeedFromCookie = (seedToRemove) => {
-        const seeds = cookies.get('seeds') || [];
+    addSeedToStorage = (newSeed) => {
+        const seeds = this.getStoredSeeds();
+        seeds.push(newSeed);
+        window.localStorage.setItem('seeds', JSON.stringify(seeds));
+    }
+
+    removeSeedFromStorage = (seedToRemove) => {
+        const seeds = this.getStoredSeeds();
         const seedIndex = seeds.findIndex(seed => JSON.stringify(seed) === JSON.stringify(seedToRemove));
         seeds.splice(seedIndex, 1);
-        const newSeedsExpiry = new Date(new Date().setFullYear(new Date().getFullYear() + 1)); // One year from now
-        cookies.set('seeds', seeds, { expires: newSeedsExpiry, path: '/' })
+        window.localStorage.setItem('seeds', JSON.stringify(seeds));
     }
 
     createGame = async ({ initialValue, bombCost, revealTimeoutBlocks, joinTimeoutBlocks, ships }) => {
@@ -237,7 +254,7 @@ export default class ContractsManager {
 		let creationSeed = Buffer.alloc(32);
 		window.crypto.getRandomValues(creationSeed);
 
-        this.addSeedToCookie({ seed: creationSeed, ships });
+        this.addSeedToStorage({ seed: creationSeed, ships });
 		
 		const creatorAddr = await this.getUserAddr();
 
@@ -286,6 +303,28 @@ export default class ContractsManager {
         )
     }
 
+    claimBomberTimeoutWin = async (gameIndex) => {
+        await this.load();
+
+        const playerAddr = await this.getUserAddr();
+
+        return await this._mainContractInstance.claimBomberWinByTimeout(
+            gameIndex,
+            { from: playerAddr }
+        );
+    }
+
+    claimJoinTimeoutReturn = async (gameIndex) => {
+        await this.load();
+
+        const playerAddr = await this.getUserAddr();
+
+        return await this._mainContractInstance.claimJoinTimeoutReturn(
+            gameIndex,
+            { from: playerAddr }
+        );
+    }
+
     seedRevealDuty = async () => {
         await this.load();
 
@@ -300,10 +339,9 @@ export default class ContractsManager {
             const { bomberAddr, creationHash } = game.data;
             if (!bomberAddr) continue;
             console.log('Found potential game:', game);
-            const cookieSeeds = cookies.get('seeds') || [];
-            const seedToReveal = cookieSeeds.find(({ seed, ships }) => {
+            const storedSeeds = this.getStoredSeeds();
+            const seedToReveal = storedSeeds.find(({ seed, ships }) => {
                 const seedDataHashStr = '0x' + calcGameHash(ships, Buffer.from(seed.data)).toString('hex');
-                console.log('Comaparing hashes:', seedDataHashStr, creationHash);
                 return seedDataHashStr === creationHash;
             });
             if (seedToReveal) {
@@ -317,7 +355,7 @@ export default class ContractsManager {
                             ships: seedToReveal.ships,
                             seed: seedToReveal.seed.data
                         });
-                        this.removeSeedFromCookie(seedToReveal);
+                        this.removeSeedFromStorage(seedToReveal);
                     }
                     else {
                         console.log('Already revealed');

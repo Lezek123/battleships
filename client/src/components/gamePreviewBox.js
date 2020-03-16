@@ -6,14 +6,16 @@ import { centerFlex } from '../styles/basic';
 import { generateGamePath } from '../constants/routes';
 import { BombCostIcon, PrizeIcon, JoinTimeoutIcon, RevealTimeoutIcon } from '../constants/icons';
 import { breakpoints as bp, breakpointHit } from '../constants/breakpoints';
+import BlocksCountdown from './blocksCountdown';
+import GAME_STATUSES from '../constants/gameStatuses';
 
 const StyledGamePreviewBox = styled.div`
     background: rgba(0, 0, 0, 0.3);
-    margin: 20px;
+    margin-bottom: 20px;
     padding: 20px;
     padding-top: 0;
     border-radius: 20px;
-    width: calc(100% - 40px);
+    width: 100%;
     position: relative;
 `;
 const PreviewBoxInner = styled.div`
@@ -25,7 +27,7 @@ const PreviewBoxInner = styled.div`
 `;
 const GameStatusLabel = styled.div`
     height: 50px;
-    background: ${ props => props.status == 'PENDING' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)' };
+    background: rgba(0, 0, 0, 0.2);
     margin: 0 -20px;
     margin-bottom: 10px;
     padding: 0 30px;
@@ -55,7 +57,7 @@ const GameData = styled.div`
 
 const StyledGameDataRow = styled.div`
     ${ centerFlex('row') }
-    padding: 20px;
+    padding: 15px;
     @media ${ breakpointHit(bp.SMALL_DESKTOP) } {
         padding: 12px;
     }
@@ -85,6 +87,10 @@ const DataName = styled.div`
 `;
 const DataVal = styled.div`
     font-size: 20px;
+    text-align: center;
+`;
+const DataInfo = styled.div`
+    font-size: 12px;
 `;
 const JoinButton = styled(BigButton)`
     margin-top: 15px;
@@ -95,34 +101,72 @@ const JoinButton = styled(BigButton)`
     }
 `;
 
-const GameDataRow = ({ dataName, dataVal, unit, icon }) => (
+export const GameDataRow = ({ dataName, dataVal, dataInfo, unit, icon }) => (
     <StyledGameDataRow>
         <DataLabel>
             <DataIcon>{ icon }</DataIcon>
             <DataName>{ dataName }:</DataName>
         </DataLabel>
-        <DataVal>{ dataVal } { unit }</DataVal>
+        <DataVal>
+            { dataVal } { unit }
+            <DataInfo>{ dataInfo }</DataInfo>
+        </DataVal>
     </StyledGameDataRow>
 )
 
 export default class GamePreviewBox extends Component {
     render() {
         const { game } = this.props;
+        const { NEW, IN_PROGRESS, FINISHED } = GAME_STATUSES;
+        const statusLabels = { [NEW]: 'New', [IN_PROGRESS]: 'In progress', [FINISHED]: 'Finished' };
         return (
             <StyledGamePreviewBox>
-                <GameStatusLabel status={game.data.bomberAddr ? 'PENDING' : 'NEW' }>
-                    {game.data.bomberAddr ? 'PENDING' : 'NEW' }
+                <GameStatusLabel status={ game.data.status }>
+                    { statusLabels[game.data.status] }
                 </GameStatusLabel>
                 <PreviewBoxInner>
                     <GameData>
-                        <GameDataRow icon={<PrizeIcon />} dataName={'Prize'} dataVal={game.data.prize} unit={'ETH'} />
-                        <GameDataRow icon={<BombCostIcon />} dataName={ 'Bomb cost' } dataVal={game.data.bombCost} unit={'ETH'}/>
-                        { !game.historical && (<>
-                            <GameDataRow icon={<JoinTimeoutIcon />} dataName={'Join timeout block'} dataVal={'#'+game.data.joinTimeoutBlockNumber} />
-                            <GameDataRow icon={<RevealTimeoutIcon />} dataName={'Reveal timeout'} dataVal={game.data.revealTimeoutBlocks} unit={'blocks'}/>
+                        <GameDataRow
+                            icon={<PrizeIcon />}
+                            dataName={'Prize'}
+                            dataVal={game.data.prize}
+                            unit={'ETH'} />
+                        <GameDataRow
+                            icon={<BombCostIcon />}
+                            dataName={ 'Bomb cost' }
+                            dataVal={game.data.bombCost}
+                            unit={'ETH'}/>
+                        { game.data.status === NEW && (<>
+                            <GameDataRow
+                                icon={<RevealTimeoutIcon />}
+                                dataName={'Reveal timeout'}
+                                dataVal={game.data.revealTimeoutBlocks}
+                                unit={'blocks'}/>
+                            <GameDataRow
+                                icon={<JoinTimeoutIcon />}
+                                dataName={'Join timeout block'}
+                                dataVal={'#'+game.data.joinTimeoutBlockNumber}
+                                dataInfo={ <BlocksCountdown targetBlock={game.data.joinTimeoutBlockNumber} /> }/>
+                        </>) }
+                        { game.data.status === IN_PROGRESS && (<>
+                            <GameDataRow
+                                icon={<BombCostIcon />}
+                                dataName={'Attack cost paid'}
+                                dataVal={game.data.payedBombCost}
+                                dataInfo={ Math.round(game.data.payedBombCost / game.data.bombCost) + ' bombs placed'}
+                                unit={'ETH'} />
+                            <GameDataRow
+                                icon={<RevealTimeoutIcon />}
+                                dataName={'Reveal timeout block'}
+                                dataVal={'#'+game.data.revealTimeoutBlockNumber}
+                                dataInfo={ <BlocksCountdown targetBlock={game.data.revealTimeoutBlockNumber} /> }/>
                         </>) }
                     </GameData>
-                    <JoinButton theme={ themes.primary } as={ Link } to={ generateGamePath(game.index) }>JOIN</JoinButton>
+                    <JoinButton theme={ themes.primary } as={ Link } to={ generateGamePath(game.index) }>
+                        { game.data.status === NEW  && 'JOIN' }
+                        { game.data.status === IN_PROGRESS  && 'WATCH' }
+                        { game.data.status === FINISHED  && 'SEE DETAILS' }
+                    </JoinButton>
                 </PreviewBoxInner>
             </StyledGamePreviewBox>
         )

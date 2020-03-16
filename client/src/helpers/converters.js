@@ -19,7 +19,7 @@ export const BNToBoard = (bn) => {
     return Array.from(Array(10)).map((row, y) => flattenBoard.slice(y*10, (y+1)*10));
 }
 
-export const secondsToStringInterval = (seconds) => {
+export const secondsToStringInterval = (seconds, showSeconds = true) => {
     const intervalParts = {
         d: parseInt(seconds / (60 * 60 * 24)),
         h: parseInt(seconds / (60 * 60)) % 24,
@@ -27,8 +27,19 @@ export const secondsToStringInterval = (seconds) => {
         s: seconds % 60,
     }
 
+    if (!seconds) return showSeconds ? '0s' : '0m';
+
     return Object.keys(intervalParts)
-        .filter(key => intervalParts[key])
+        .filter(key => (showSeconds || key !== 's') && intervalParts[key])
         .map(key => `${ intervalParts[key] }${ key }`)
         .join(' ');
+}
+
+export const AVG_BLOCK_TIME = 14;
+export const blocksToRoundedInterval = (blocksCount, roundToMinutes = 5) => {
+    let minutes = blocksCount * AVG_BLOCK_TIME / 60;
+    let minutesRounded = Math.round(minutes / roundToMinutes) * roundToMinutes;
+
+    if (!minutesRounded) return `<${roundToMinutes}m`;
+    return `~${ secondsToStringInterval(minutesRounded * 60, 'm') }`;
 }

@@ -7,6 +7,8 @@ import { FormField, FieldInfo } from './fields/formFields';
 import ContractsManager from '../helpers/contracts';
 import BombsBoard from './bombsBoard';
 import { breakpoints as bp, breakpointHit } from '../constants/breakpoints';
+import TimeoutClaim from './timeoutClaim';
+import { JoinTimeoutIcon } from '../constants/icons';
 // import { useParams } from 'react-router-dom';
 
 const StyledGame = styled.div`
@@ -73,7 +75,7 @@ export default class JoinedGame extends Component {
     }
 
     render() {
-        const { gameData: { bombCost, prize } } = this.props;
+        const { index, gameData: { bombCost, prize, joinTimeoutBlockNumber, isUserCreator } } = this.props;
         const placedBombsCount = this.getPlacedBombsCount();
         
         return (
@@ -100,6 +102,13 @@ export default class JoinedGame extends Component {
                     </FormField>
                     <Submit text="Attack" disabled={ !this.isAttackValid() } />
                 </AttackForm>
+                <TimeoutClaim
+                    timeoutName="Join"
+                    timeoutIcon={ <JoinTimeoutIcon /> }
+                    timeoutBlock={ joinTimeoutBlockNumber }
+                    canUserClaim={ isUserCreator }
+                    claimMethod={ async () => await this._contractManager.claimJoinTimeoutReturn(index) }
+                    claimAmount={ prize }/>
             </StyledGame>
         )
     }

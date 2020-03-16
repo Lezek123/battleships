@@ -9,7 +9,7 @@ contract GameOfShips {
         bytes32 creationHash;
         uint prize;
         uint bombCost;
-        uint8 revealTimeoutBlocks;
+        uint16 revealTimeoutBlocks;
         uint joinTimeoutBlockNumber;
         uint revealTimeoutBlockNumber;
         address payable bomber;
@@ -40,7 +40,7 @@ contract GameOfShips {
         uint16 _joinTimeoutBlocks
     ) public payable {
         require(_revealTimeoutBlocks >= 10, "Minimum reveal timeout is 10 blocks"); // ~2m 20 sec (assuming 14 sec / block)
-        require(_revealTimeoutBlocks <= 120, "Maximum reveal timeout is 120 blocks"); // ~28m (assuming 14 sec / block)
+        require(_revealTimeoutBlocks <= 43200, "Maximum reveal timeout is 43200 blocks"); // ~7 days (assuming 14 sec / block)
         require(_joinTimeoutBlocks >= 10, "Minimum join timeout is 10 blocks"); // ~2m 20 sec (assuming 14 sec / block)
         require(_joinTimeoutBlocks <= 43200, "Maximum join timeout is 43200 blocks"); // ~7 days (assuming 14 sec / block)
         // TODO: Bomb cost constraints
@@ -94,7 +94,7 @@ contract GameOfShips {
         // Store in memory, because we want to use it's values AFTER deleting from storage
         Game memory game = games[_gameIndex];
         require(game.creator != address(0), 'Game not found.');
-        require(block.number > game.joinTimeoutBlockNumber, "Timeout not reached yet.");
+        require(block.number >= game.joinTimeoutBlockNumber, "Timeout not reached yet.");
         require(game.bomber == address(0), "The game already started.");
         delete games[_gameIndex];
         emit JoinTimeout(_gameIndex);
@@ -127,7 +127,7 @@ contract GameOfShips {
         Game memory game = games[_gameIndex];
         require(game.creator != address(0), 'Game not found.');
         require(game.bomber != address(0), "Bomber is not defined.");
-        require(block.number > game.revealTimeoutBlockNumber, "Timeout not reached yet.");
+        require(block.number >= game.revealTimeoutBlockNumber, "Timeout not reached yet.");
         delete games[_gameIndex];
         emit RevealTimeout(_gameIndex);
         emit GameFinished(_gameIndex);

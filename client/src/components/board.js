@@ -219,7 +219,8 @@ export default class Board extends Component {
         y,
         xSize = this.props.objectXSize,
         ySize = this.props.objectYSize,
-        objectImage = this.props.objectImage
+        objectImage = this.props.objectImage,
+        key = null
     }) => {
         const { xSize: boardXSize, ySize: boardYSize } = this.props;
         return (
@@ -230,6 +231,7 @@ export default class Board extends Component {
                     top: `${ y / boardYSize * 100 }%`,
                     left: `${ x / boardXSize * 100}%`
                 } }
+                key={ key }
                 >
                 { objectImage }
             </ObjectImage>
@@ -254,7 +256,7 @@ export default class Board extends Component {
                         ))
                     )) }
                 </BoardGrid>
-                { placedObjects.map(placedObj => this.renderObjectImage(placedObj)) }
+                { placedObjects.map((placedObj, key) => this.renderObjectImage({...placedObj, key })) }
                 { placementPossible && this.renderObjectImage(hoveredField) }
             </BoardContainer>
         )
