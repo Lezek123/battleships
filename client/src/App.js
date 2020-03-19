@@ -79,6 +79,7 @@ class App extends Component {
 	}
 
 	render() {
+		const { fetchUsersGames, getUsersGamesCount, fetchAllGames, getAllGamesCount } = this._contractsManager;
 		if (!this.state.initialized) return <StyledApp><Loader /></StyledApp>;
 		return (
 			<StyledApp>
@@ -89,7 +90,7 @@ class App extends Component {
 				<AppBody>
 					<Switch>
 						<Route path={ MY_GAMES_PATH }>
-							<GamesListWrapper fetchMethod={ this._contractsManager.fetchUsersGames } />
+							<GamesListWrapper fetchMethod={ fetchUsersGames } countMethod={ getUsersGamesCount } />
 						</Route>
 						<Route path={ GAME_PATH } render={ props => {
 							return <Game index={props.match.params.id} />;
@@ -98,7 +99,7 @@ class App extends Component {
 							<CreateGameForm onSubmit={ this.handleGameCreation } />
 						</Route>
 						<Route path={ GAMES_LIST_PATH }>
-							<GamesListWrapper fetchMethod={ this._contractsManager.fetchAllGames } />
+							<GamesListWrapper fetchMethod={ fetchAllGames } countMethod={ getAllGamesCount } />
 						</Route>
 						<Route path="/">
 							<AppHeader>

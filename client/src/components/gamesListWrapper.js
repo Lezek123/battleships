@@ -1,7 +1,7 @@
 import React, { Component } from 'react'
 import GamesList from './gamesList';
 import Loader from './loader';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import GAME_STATUSES from '../constants/gameStatuses';
 import { BasicButton } from './navigation/buttons';
 import {centerFlex} from '../styles/basic';
@@ -55,8 +55,10 @@ const GamesListTab = styled(BasicButton)`
     }
 `;
 const GamesListContent = styled.div`
+    position: relative;
+    overflow: hidden;
     margin-bottom: auto;
-    padding: 20px;
+    padding: 50px 20px;
     width: 100%;
     border: 3px solid #777;
     border-radius: 20px;
@@ -67,9 +69,42 @@ const GamesListContent = styled.div`
     }
 `;
 
+const Pagination = styled.div`
+    display: flex;
+    position: absolute;
+    right: 0;
+    overflow: hidden;
+    ${ props => props.position === 'top' && css`top: 0; border-bottom-left-radius: 20px;` }
+    ${ props => props.position === 'bottom' && css`bottom: 0; border-top-left-radius: 20px;` }
+`;
+const PageLink = styled.button`
+    width: 35px;
+    height: 35px;
+    background: #777;
+    color: #fff;
+    border: 0;
+    font-size: 16px;
+    margin-left: 1px;
+    cursor: pointer;
+    &.active {
+        background: #fff;
+        color: #222;
+        cursor: initial;
+    }
+    &:focus { outline: 0 };
+`;
+const PageMore = styled.div`
+    width: 35px;
+    height: 35px;
+    background: #555;
+    color: #fff;
+    cursor: default;
+    ${ centerFlex('column') }
+`;
 
 export default class GamesListWrapper extends Component {
-    state = { games: [], gamesStatus: GAME_STATUSES.NEW, fetching: true };
+    state = { games: [], totalGamesCount: null, page: 1, gamesStatus: GAME_STATUSES.NEW, fetching: true };
+
     componentWillMount() {
         this.fetchGames();
     }
@@ -79,15 +114,20 @@ export default class GamesListWrapper extends Component {
             prevProps.fetchMethod !== this.props.fetchMethod
             || prevState.gamesStatus !== this.state.gamesStatus
         ) {
+            this.setState({ page: 1 }, this.fetchGames);
+        }
+        if (prevState.page !== this.state.page) {
             this.fetchGames();
         }
     }
 
     async fetchGames() {
         this.setState({ fetching: true}, async () => {
-            const { fetchMethod } = this.props;
-            const games = await fetchMethod(this.state.gamesStatus);
-            this.setState({ games, fetching: false });
+            const { fetchMethod, countMethod } = this.props;
+            const { gamesStatus, page } = this.state;
+            const games = await fetchMethod(gamesStatus, page);
+            const totalGamesCount = await countMethod(gamesStatus);
+            this.setState({ games, totalGamesCount, fetching: false });
         });
     }
 
@@ -102,6 +142,31 @@ export default class GamesListWrapper extends Component {
         );
     }
 
+    renderPagination = (position) => {
+        const { page, totalGamesCount } = this.state;
+        const GAMES_PER_PAGE = 10;
+        const pages = Math.ceil(totalGamesCount / GAMES_PER_PAGE);
+        if (pages <= 1) return null;
+        const beginPage = Math.max(1, page - 5);
+        const endPage = Math.min(pages, page + 5);
+        const displayedPages = Array.from(Array(endPage - beginPage + 1)).map((v,i) => beginPage+i);
+        return (
+            <Pagination position={position}>
+                { displayedPages.map((pageNum) => (
+                    <React.Fragment key={pageNum}>
+                        { pageNum === endPage && endPage < pages && <PageMore>...</PageMore> }
+                        <PageLink
+                            className={ page === pageNum && 'active' }
+                            onClick={ () => this.setState({ page: pageNum })}>
+                            { pageNum }
+                        </PageLink>
+                        { pageNum === beginPage && beginPage > 1 && <PageMore>...</PageMore> }
+                    </React.Fragment>
+                )) }
+            </Pagination>
+        );
+    }
+
     render() {
         const { games, fetching } = this.state;
 
@@ -113,10 +178,12 @@ export default class GamesListWrapper extends Component {
                     { this.renderTab(GAME_STATUSES.FINISHED, 'Finished') }
                 </GamesListTabs>
                 <GamesListContent>
+                    { this.renderPagination('top') }
                     { fetching ?
                         <Loader text="Fetching games data..." />
                         : <GamesList games={games}/>
                     }
+                    { this.renderPagination('bottom') }
                 </GamesListContent>
             </StyledGamesListWrapper>
         );

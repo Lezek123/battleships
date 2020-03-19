@@ -98,12 +98,11 @@ export default class ContractsManager {
     }
 
     // If status not provided then fetch all active
-    fetchUsersGames = async (status = 'active') => {
+    fetchGames = async (status = 'active', page = 1, usersOnly = false) => {
         await this.load();
-
         const userAddr = await this.getUserAddr();
-        const games = (await axios.get(`/games/${ userAddr }/${ status }`)).data;
-
+        const endpoint = `/games/${status}${ usersOnly ? `/${userAddr}` : '' }/${ page }`;
+        const games = (await axios.get(endpoint)).data;
         return games.map(game => ({
             ...game,
             isUserCreator: this.compareAddr(userAddr, game.creatorAddr),
@@ -111,18 +110,21 @@ export default class ContractsManager {
         }));
     }
 
-    // If status not provided then fetch all active
-    fetchAllGames = async (status = 'active') => {
-        await this.load();
+    fetchUsersGames = async (status = 'active', page = 1) => {
+        return this.fetchGames(status, page, true);
+    }
 
+    getUsersGamesCount = async (status = 'active') => {
         const userAddr = await this.getUserAddr();
-        const games = (await axios.get(`/games/${ status || 'active' }`)).data;
+        return (await axios.get(`/games/count/${ status }/${ userAddr }`)).data.count;
+    }
 
-        return games.map(game => ({
-            ...game,
-            isUserCreator: this.compareAddr(userAddr, game.creatorAddr),
-            isUserBomber: this.compareAddr(userAddr, game.bomberAddr)
-        }));
+    fetchAllGames = async (status = 'active', page = 1) => {
+        return this.fetchGames(status, page, false);
+    }
+
+    getAllGamesCount = async (status = 'active') => {
+        return (await axios.get(`/games/count/${ status }`)).data.count;
     }
 
     // TODO: Remove?
@@ -351,7 +353,9 @@ export default class ContractsManager {
                             ships: seedToReveal.ships,
                             seed: seedToReveal.seed.data
                         });
-                        this.removeSeedFromStorage(seedToReveal); 
+                        // TODO: Remove only after the game finished with some confirmations
+                        // So it can be re-sent to server (if the server restarts)
+                        this.removeSeedFromStorage(seedToReveal);
                     }
                     else {
                         console.log('Already revealed');

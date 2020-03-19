@@ -135,7 +135,7 @@ export default class CalimNotifications extends Component {
     updateNotifications = async () => {
         let joinTimeoutGames = [], revealTimeoutGames = [], wonGames = [];
         const web3 = await this._contractsManager.getWeb3();
-        const usersGames = await this._contractsManager.fetchUsersGames();
+        const usersGames = await this._contractsManager.fetchUsersGames('active', 'all');
         const currentBlockNumber = await web3.eth.getBlockNumber();
         for (let game of usersGames) {
             if (
