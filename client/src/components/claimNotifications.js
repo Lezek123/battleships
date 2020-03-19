@@ -12,26 +12,45 @@ import { generateGamePath } from '../constants/routes';
 import { breakpointHit, breakpointNotHit, breakpoints as bp } from '../constants/breakpoints';
 
 const StyledClaimNotifications = styled.div`
-    display: flex;
     @media ${ breakpointNotHit(bp.SMALL_LAPTOP) } {
         position: fixed;
-        top: 20px;
+        top: 0;
         right: 0;
-        display: flex;
-        flex-direction: column;
+        background: rgba(255,255,255,0.05);
+        min-height: 100vh
     }
     @media ${ breakpointHit(bp.SMALL_LAPTOP) } {
         width: 100%;
+        background: rgba(255, 255, 255, 0.6);
+    }
+`;
+const ClaimNotificationsTitle = styled.div`
+    background: rgba(255,255,255,0.2);
+    padding: 10px 0;
+    margin-bottom: 10px;
+    font-size: 18px;
+    text-align: center;
+    @media ${ breakpointHit(bp.SMALL_LAPTOP) } {
+        background: rgba(0,0,0,0.4);
+    }
+`;
+const ClaimNotificationBoxes = styled.div`
+    width: 100%;
+    display: flex;
+    @media ${ breakpointNotHit(bp.SMALL_LAPTOP) } {
+        flex-direction: column;
+        align-items: center;
+    }
+    @media ${ breakpointHit(bp.SMALL_LAPTOP) } {
         flex-direction: row;
         align-items: flex-start;
         justify-content: space-evenly;
-        background: rgba(255, 255, 255, 0.6);
     }
 `;
 const NotificationsBoxContainer = styled.div`
     margin: 10px 0;
     ${ centerFlex('column') }
-    width: 200px;
+    width: 230px;
     @media ${ breakpointHit(bp.SMALL_LAPTOP) } {
         width: 100px;
     }
@@ -50,7 +69,7 @@ const NotificationsIcon = styled.div`
     font-size: 24px;
 `;
 const NotificationsCount = styled.div`
-    background: ${ colors.INFO_LIGHT };
+    background: ${ props => props.notificationsCount ? colors.INFO_LIGHT : '#ccc' };
     width: 20px;
     height: 20px;
     ${ centerFlex('column') };
@@ -98,17 +117,17 @@ class ClaimNotificationsBox extends Component {
         const { icon, gameIndexes, opened } = this.props;
         return (
             <NotificationsBoxContainer>
-                <NotificationsBox notificationsCount={ gameIndexes.length } onClick={ this.toggleOpened }>
+                <NotificationsBox notificationsCount={ gameIndexes.length } onClick={ () => gameIndexes.length && this.toggleOpened() }>
                     <NotificationsIcon>{ icon }</NotificationsIcon>
-                    { gameIndexes.length > 0 && (
-                        <NotificationsCount>{ gameIndexes.length }</NotificationsCount>
-                    ) }
+                    <NotificationsCount notificationsCount={ gameIndexes.length }>{ gameIndexes.length }</NotificationsCount>
                 </NotificationsBox>
-                <NotificationsGamesList className={ opened ? 'expanded' : '' }>
-                    { gameIndexes.map((gameIndex, key) => (
-                        <GameLink key={key} to={ generateGamePath(gameIndex) }>Game #{ gameIndex}</GameLink>
-                    )) }
-                </NotificationsGamesList>
+                { gameIndexes.length > 0 && (
+                    <NotificationsGamesList className={ opened ? 'expanded' : '' }>
+                        { gameIndexes.map((gameIndex, key) => (
+                            <GameLink key={key} to={ generateGamePath(gameIndex) }>Game #{ gameIndex}</GameLink>
+                        )) }
+                    </NotificationsGamesList>
+                ) }
             </NotificationsBoxContainer>
         );
     }
@@ -173,13 +192,28 @@ export default class CalimNotifications extends Component {
         this.setState({ joinTimeoutGames, revealTimeoutGames, wonGames });
     }
 
+    renderClaimNotificationBox = (number, icon, games) => {
+        const { openedBox } = this.state;
+        return (
+            <ClaimNotificationsBox
+                onOpen={ () => this.setOpenedBox(number) }
+                onClose={ () => this.setOpenedBox(null) }
+                opened={ openedBox === number }
+                icon={ icon }
+                gameIndexes={ games } />
+        );
+    }
+
     render() {
-        const { joinTimeoutGames, revealTimeoutGames, wonGames, openedBox } = this.state;
+        const { joinTimeoutGames, revealTimeoutGames, wonGames } = this.state;
         return (
             <StyledClaimNotifications>
-                <ClaimNotificationsBox onOpen={ () => this.setOpenedBox(1) } onClose={ () => this.setOpenedBox(null) } opened={ openedBox === 1 } icon={ <PrizeIcon /> } gameIndexes={ wonGames } />
-                <ClaimNotificationsBox onOpen={ () => this.setOpenedBox(2) } onClose={ () => this.setOpenedBox(null) } opened={ openedBox === 2 } icon={ <RevealTimeoutIcon /> } gameIndexes={ revealTimeoutGames } />
-                <ClaimNotificationsBox onOpen={ () => this.setOpenedBox(3) } onClose={ () => this.setOpenedBox(null) } opened={ openedBox === 3 } icon={ <JoinTimeoutIcon /> } gameIndexes={ joinTimeoutGames } />
+                <ClaimNotificationsTitle>Available claims</ClaimNotificationsTitle>
+                <ClaimNotificationBoxes>
+                    { this.renderClaimNotificationBox(1, <PrizeIcon />, wonGames) }
+                    { this.renderClaimNotificationBox(2, <RevealTimeoutIcon />, revealTimeoutGames) }
+                    { this.renderClaimNotificationBox(3, <JoinTimeoutIcon />, joinTimeoutGames) }
+                </ClaimNotificationBoxes>
             </StyledClaimNotifications>
         )
     }

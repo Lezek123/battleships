@@ -12,8 +12,12 @@ const StyledNav = styled.nav`
     @media ${ breakpointNotHit(bp.SMALL_LAPTOP) } {
         align-items: flex-start;
         position: fixed;
-        top: 20px;
+        top: 0;
         left: 0;
+        width: 230px;
+        min-height: 100vh;
+        padding: 20px 0;
+        background: rgba(255,255,255,0.05);
     }
     @media ${ breakpointHit(bp.SMALL_LAPTOP) } {
         width: 100%;
