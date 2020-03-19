@@ -18,28 +18,40 @@ const GamePageHeader = styled.h1`
     margin-bottom: 20px;
 `;
 
+const UPDATE_INTERVAL_TIME = 5000;
+
 export default class Game extends Component {
     state = { game: null, fetching: true }
     
     async componentWillMount() {
         this._contractsManager = new ContractsManager();
-        this.loadGame();
+        this.reloadGame();
     }
 
     componentDidUpdate(prevProps) {
-        if (prevProps.index !== this.props.index) this.loadGame();
+        if (prevProps.index !== this.props.index) this.reloadGame();
     }
 
-    loadGame = async () => {
-        const { index } = this.props;
-        this.setState({ fetching: true }, async () => {
-            const game = (await axios.get(`/games/by_index/${ index }`)).data;
-            const userAddr = await this._contractsManager.getUserAddr();
-            game.isUserCreator = this._contractsManager.compareAddr(userAddr, game.creatorAddr);
-            game.isUserBomber = this._contractsManager.compareAddr(userAddr, game.bomberAddr);
-            this.setState({ game, fetching: false });
-        });
+    componentWillUnmount() {
+        if (this.updateInterval) clearInterval(this.updateInterval);
     }
+
+    reloadGame = async () => {
+        if (this.updateInterval) clearInterval(this.updateInterval);
+        this.setState({ fetching: true }, this.updateGame);
+        this.updateInterval = setInterval(this.updateGame, UPDATE_INTERVAL_TIME);
+    }
+
+    updateGame = async () => {
+        const { index } = this.props;
+        const game = (await axios.get(`/games/by_index/${ index }`)).data;
+        const userAddr = await this._contractsManager.getUserAddr();
+        game.isUserCreator = this._contractsManager.compareAddr(userAddr, game.creatorAddr);
+        game.isUserBomber = this._contractsManager.compareAddr(userAddr, game.bomberAddr);
+        this.setState({ game, fetching: false });
+    }
+
+
 
     render() {
         const { game, fetching } = this.state;

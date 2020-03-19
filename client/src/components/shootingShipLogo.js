@@ -76,6 +76,7 @@ export default class ShipLogo extends Component {
 	componentWillUnmount() {
 		window.removeEventListener('mousemove', this.onMouseMove);
 		window.removeEventListener('mousedown', this.onMouseDown);
+		if (this.shotAnimationIv) clearInterval(this.shotAnimationIv);
 	}
 	onMouseMove = (e) => {
 		if (this.state.shooting) return;

@@ -128,6 +128,10 @@ export default class CalimNotifications extends Component {
         this.interval = setInterval(this.updateNotifications, 10000);
     }
 
+    componentWillUnmount() {
+        if (this.interval) clearInterval(this.interval);
+    }
+
     setOpenedBox = (boxIndex) => {
         this.setState({ openedBox: boxIndex });
     }
