@@ -137,31 +137,31 @@ export default class CalimNotifications extends Component {
         const web3 = await this._contractsManager.getWeb3();
         const usersGames = await this._contractsManager.fetchUsersGames();
         const currentBlockNumber = await web3.eth.getBlockNumber();
-        for (let {index, data: gameData} of usersGames) {
+        for (let game of usersGames) {
             if (
-                gameData.isUserCreator
-                && gameData.status === GAME_STATUSES.NEW
-                && gameData.joinTimeoutBlockNumber <= currentBlockNumber
+                game.isUserCreator
+                && game.status === GAME_STATUSES.NEW
+                && game.joinTimeoutBlockNumber <= currentBlockNumber
             ) {
-                joinTimeoutGames.push(index);
+                joinTimeoutGames.push(game.gameIndex);
             }
             else if (
-                gameData.isUserBomber
-                && gameData.status === GAME_STATUSES.IN_PROGRESS
-                && gameData.revealTimeoutBlockNumber <= currentBlockNumber
+                game.isUserBomber
+                && game.status === GAME_STATUSES.IN_PROGRESS
+                && game.revealTimeoutBlockNumber <= currentBlockNumber
             ) {
-                revealTimeoutGames.push(index);
+                revealTimeoutGames.push(game.gameIndex);
             }
             else {
                 // TODO: Move this logic to some revealHelper? (it's used in 2 places now)
-                const revealedDataRes = await fetch('/reveal/' + index);
+                const revealedDataRes = await fetch('/reveal/' + game.gameIndex);
                 const revealedData = await revealedDataRes.json();
-                if (revealedData && revealedData.ships) {
+                if (revealedData.ships) {
                     const shipsBoard = shipsToBoard(revealedData.ships);
-                    const compareRes = compareBoards(shipsBoard, gameData.bombsBoard);
+                    const compareRes = compareBoards(shipsBoard, game.bombsBoard);
                     const isCreatorWinner = compareRes.some(row => row.some(resField => resField === 'a'));
-                    if ((gameData.isUserCreator && isCreatorWinner) || (gameData.isUserBomber && !isCreatorWinner)) {
-                        wonGames.push(index);
+                    if ((game.isUserCreator && isCreatorWinner) || (game.isUserBomber && !isCreatorWinner)) {
+                        wonGames.push(game.gameIndex);
                     }
                 }
             }

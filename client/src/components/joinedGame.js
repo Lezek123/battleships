@@ -67,15 +67,15 @@ export default class JoinedGame extends Component {
         e.preventDefault();
         if (!this.isAttackValid()) return;
 
-        const { index, gameData: { bombCost } } = this.props;
+        const { game: { gameIndex, bombCost } } = this.props;
         const { bombsBoard } = this.state;
         const bombsCost = bombCost * this.getPlacedBombsCount();
 
-        await this._contractManager.setBombsInGame(index, bombsBoard, bombsCost);
+        await this._contractManager.setBombsInGame(gameIndex, bombsBoard, bombsCost);
     }
 
     render() {
-        const { index, gameData: { bombCost, prize, joinTimeoutBlockNumber, isUserCreator } } = this.props;
+        const { game: { gameIndex, bombCost, prize, joinTimeoutBlockNumber, isUserCreator } } = this.props;
         const placedBombsCount = this.getPlacedBombsCount();
         
         return (
@@ -107,7 +107,7 @@ export default class JoinedGame extends Component {
                     timeoutIcon={ <JoinTimeoutIcon /> }
                     timeoutBlock={ joinTimeoutBlockNumber }
                     canUserClaim={ isUserCreator }
-                    claimMethod={ async () => await this._contractManager.claimJoinTimeoutReturn(index) }
+                    claimMethod={ async () => await this._contractManager.claimJoinTimeoutReturn(gameIndex) }
                     claimAmount={ prize }/>
             </StyledGame>
         )

@@ -76,7 +76,6 @@ class App extends Component {
 
 	handleGameCreation = async (gameData) => {
 		await this._contractsManager.createGame(gameData);
-		window.location = MY_GAMES_PATH;
 	}
 
 	render() {

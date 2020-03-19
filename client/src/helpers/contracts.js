@@ -97,40 +97,35 @@ export default class ContractsManager {
         return this._web3.currentProvider.selectedAddress;
     }
 
-    // If status is null then fetch all active
-    fetchUsersGames = async (status = null) => {
+    // If status not provided then fetch all active
+    fetchUsersGames = async (status = 'active') => {
         await this.load();
+
         const userAddr = await this.getUserAddr();
-        const indexes = await this.queryIndexesByEvents([
-            { eventName: EVENTS.GAME_CREATED, filter: { _creator: userAddr } },
-            { eventName: EVENTS.BOMBS_PLACED, filter: { _bomber: userAddr } },
-        ]);
-        let games = status === GAME_STATUSES.FINISHED ?
-            await this.fetchGamesHistoricalData(indexes)
-            : await this.fetchActiveGamesByIndexes(indexes);
-        if (status && status !== GAME_STATUSES.FINISHED) {
-            games = games.filter(({data}) => data.status === status);
-        }
+        const games = (await axios.get(`/games/${ userAddr }/${ status }`)).data;
 
-        return games;
+        return games.map(game => ({
+            ...game,
+            isUserCreator: this.compareAddr(userAddr, game.creatorAddr),
+            isUserBomber: this.compareAddr(userAddr, game.bomberAddr)
+        }));
     }
 
-    // If status is null then fetch all active
-    fetchAllGames = async (status = null) => {
+    // If status not provided then fetch all active
+    fetchAllGames = async (status = 'active') => {
         await this.load();
-        let indexes, games;
-        if (status !== GAME_STATUSES.FINISHED) {
-            indexes = await this.queryIndexesByEvents([{eventName: EVENTS.GAME_CREATED}]);
-            games = await this.fetchActiveGamesByIndexes(indexes);
-            if (status) games = games.filter(({data}) => data.status === status)
-        }
-        else {
-            indexes = await this.queryIndexesByEvents([{eventName:EVENTS.GAME_FINISHED}]);
-            games = await this.fetchGamesHistoricalData(indexes);
-        }
-        return games;
+
+        const userAddr = await this.getUserAddr();
+        const games = (await axios.get(`/games/${ status || 'active' }`)).data;
+
+        return games.map(game => ({
+            ...game,
+            isUserCreator: this.compareAddr(userAddr, game.creatorAddr),
+            isUserBomber: this.compareAddr(userAddr, game.bomberAddr)
+        }));
     }
 
+    // TODO: Remove?
     queryIndexesByEvents = async (eventsData) => {
         await this.load();
 
@@ -139,8 +134,6 @@ export default class ContractsManager {
             const eventOptions = { filter, fromBlock };
             events = events.concat(await this._mainContractInstance.getPastEvents(eventName, eventOptions));
         }
-        // TODO: Divide into "batches" (to use with pagination) using fromBlock and toBlock
-        // Sort events by "newest"
         events = events.sort((a, b) => a.blockNumber > b.blockNumber ? -1 : b.transactionIndex - a.transactionIndex);
 
         const indexes = events.map(event => event.args._gameIndex.toNumber());
@@ -148,6 +141,7 @@ export default class ContractsManager {
         return indexes.filter((gameIndex, arrIndex) => indexes.indexOf(gameIndex) === arrIndex);
     }
 
+    // TODO: Remove?
     fetchActiveGamesByIndexes = async (indexes) => {
         let games = [];
         for (let index of indexes) {
@@ -159,6 +153,7 @@ export default class ContractsManager {
         return games;
     }
 
+    // TODO: Remove?
     fetchGameData = async (index) => {
         await this.load();
 
@@ -171,7 +166,7 @@ export default class ContractsManager {
             creationHash: originalData.creationHash,
             prize: round(this._web3.utils.fromWei(originalData.prize), 8),
             bombCost: round(this._web3.utils.fromWei(originalData.bombCost), 8),
-            payedBombCost: round(this._web3.utils.fromWei(originalData.payedBombCost), 8),
+            paidBombsCost: round(this._web3.utils.fromWei(originalData.paidBombsCost), 8),
             joinTimeoutBlockNumber: originalData.joinTimeoutBlockNumber.toNumber(),
             revealTimeoutBlocks: originalData.revealTimeoutBlocks.toNumber(),
             revealTimeoutBlockNumber: originalData.revealTimeoutBlockNumber.toNumber(),
@@ -187,6 +182,7 @@ export default class ContractsManager {
         return gameData;
     }
 
+    // TODO: Remove?
     fetchGamesHistoricalData = async (indexes) => {
         await this.load();
         let games = [];
@@ -199,11 +195,13 @@ export default class ContractsManager {
         return games;
     }
 
+    // TODO: Remove?
     fetchGameHistoricalData = async (index) => {
         await this.load();
         const eventOptions = { filter: { _gameIndex: index }, fromBlock: 0 };
         const eventsToFetch = [EVENTS.GAME_CREATED, EVENTS.BOMBS_PLACED, EVENTS.SHIPS_REVEALED, EVENTS.GAME_FINISHED];
         const eventsData = {};
+        
         for (let event of eventsToFetch) {
             const eventsFetched = await this._mainContractInstance.getPastEvents(EVENTS.GAME_CREATED, eventOptions);
             eventsData[event] = eventsFetched.length ? eventsFetched[0] : { args: {} };
@@ -332,14 +330,11 @@ export default class ContractsManager {
 
         console.log('Seed reveal duty...');
 
-        const usersCreatedGamesIndexes = await this.queryIndexesByEvents([
-            { eventName: EVENTS.GAME_CREATED, filter: { _creator: await this.getUserAddr() } }
-        ]);
-        const usersCreatedGames = await this.fetchActiveGamesByIndexes(usersCreatedGamesIndexes);
+        const userAddr = await this.getUserAddr();
+        const gamesAwaitingReveal = (await axios.get(`/games/awaiting_reveal/${ userAddr }`)).data;
 
-        for (let game of usersCreatedGames) {
-            const { bomberAddr, creationHash } = game.data;
-            if (!bomberAddr) continue;
+        for (let game of gamesAwaitingReveal) {
+            const { creationHash } = game;
             console.log('Found potential game:', game);
             const storedSeeds = this.getStoredSeeds();
             const seedToReveal = storedSeeds.find(({ seed, ships }) => {
@@ -349,15 +344,14 @@ export default class ContractsManager {
             if (seedToReveal) {
                 console.log('Found seed to reveal');
                 try {
-                    const wasSeedRevealedRes = await fetch(`${SEED_REVEAL_ENDPOINT}/${ game.index }`);
-                    const wasSeedRevealed = await wasSeedRevealedRes.json();
+                    const wasSeedRevealed = (await axios.get(`${SEED_REVEAL_ENDPOINT}/${ game.gameIndex }`)).data;
                     if (!wasSeedRevealed) {
                         await axios.post(SEED_REVEAL_ENDPOINT, {
-                            gameIndex: game.index,
+                            gameIndex: game.gameIndex,
                             ships: seedToReveal.ships,
                             seed: seedToReveal.seed.data
                         });
-                        this.removeSeedFromStorage(seedToReveal);
+                        this.removeSeedFromStorage(seedToReveal); 
                     }
                     else {
                         console.log('Already revealed');

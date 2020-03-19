@@ -12,4 +12,12 @@ const boardToBN = (bombsBoard) => {
     return new BigNumber(bitsStr, 2);
 }
 
-module.exports = { shipsToArrShips, boardToBN };
+const BNToBoard = (bn) => {
+    if (!bn) return null;
+    const bitsStr = bn.toString(2);
+    const flattenBoard = bitsStr.split('').map(b => b === '1').reverse();
+    while (flattenBoard.length < 100) flattenBoard.push(false);
+    return Array.from(Array(10)).map((row, y) => flattenBoard.slice(y*10, (y+1)*10));
+}
+
+module.exports = { shipsToArrShips, boardToBN, BNToBoard };

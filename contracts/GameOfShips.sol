@@ -13,7 +13,7 @@ contract GameOfShips {
         uint joinTimeoutBlockNumber;
         uint revealTimeoutBlockNumber;
         address payable bomber;
-        uint payedBombCost;
+        uint paidBombsCost;
         uint128 bombsBoard; // Board encoded into bits
     }
 
@@ -23,9 +23,25 @@ contract GameOfShips {
         bool vertical;
     }
 
-    event GameCreated(uint32 _gameIndex, address _creator, uint _prize, uint _bombCost);
-    event BombsPlaced(uint32 _gameIndex, address _bomber, uint128 _bombsBoard);
-    event ShipsRevealed(uint32 _gameIndex, Ship[5] _ships);
+    event GameCreated(
+        uint32 _gameIndex,
+        address _creator,
+        bytes32 _creationHash,
+        uint _prize,
+        uint _bombCost,
+        uint16 _revealTimeoutBlocks,
+        uint16 _joinTimeoutBlocks
+    );
+    event BombsPlaced(
+        uint32 _gameIndex,
+        address _bomber,
+        uint128 _bombsBoard,
+        uint _paidBombsCost
+    );
+    event ShipsRevealed(
+        uint32 _gameIndex,
+        Ship[5] _ships
+    );
     event GameFinished(uint32 _gameIndex);
     event RevealTimeout(uint32 _gameIndex);
     event JoinTimeout(uint32 _gameIndex);
@@ -36,7 +52,7 @@ contract GameOfShips {
     function createGame(
         bytes32 _creationHash,
         uint _bombCost,
-        uint8 _revealTimeoutBlocks,
+        uint16 _revealTimeoutBlocks,
         uint16 _joinTimeoutBlocks
     ) public payable {
         require(_revealTimeoutBlocks >= 10, "Minimum reveal timeout is 10 blocks"); // ~2m 20 sec (assuming 14 sec / block)
@@ -54,7 +70,7 @@ contract GameOfShips {
         game.prize = msg.value;
         game.revealTimeoutBlocks = _revealTimeoutBlocks;
         game.joinTimeoutBlockNumber = block.number + _joinTimeoutBlocks;
-        emit GameCreated(lastGameIndex, msg.sender, msg.value, _bombCost);
+        emit GameCreated(lastGameIndex, msg.sender, _creationHash, msg.value, _bombCost, _revealTimeoutBlocks, _joinTimeoutBlocks);
     }
     
     function setBombs(uint32 _gameIndex, uint128 _bombsBoard) public payable {
@@ -68,8 +84,8 @@ contract GameOfShips {
         game.bomber = msg.sender;
         game.bombsBoard = _bombsBoard;
         game.revealTimeoutBlockNumber = block.number + game.revealTimeoutBlocks;
-        game.payedBombCost = msg.value;
-        emit BombsPlaced(_gameIndex, msg.sender, _bombsBoard);
+        game.paidBombsCost = msg.value;
+        emit BombsPlaced(_gameIndex, msg.sender, _bombsBoard, msg.value);
     }
 
     function getBoardFieldAtPosition(uint128 _bombsBoard, uint128 _position) private view returns(bool) {
@@ -114,11 +130,11 @@ contract GameOfShips {
         if ((shipsBoard & game.bombsBoard) == shipsBoard) {
             // Bomber won
             game.bomber.transfer(game.prize);
-            game.creator.transfer(game.payedBombCost);
+            game.creator.transfer(game.paidBombsCost);
         }
         else {
             // Creator won
-            game.creator.transfer(game.prize + game.payedBombCost);
+            game.creator.transfer(game.prize + game.paidBombsCost);
         }
     }
     
@@ -132,7 +148,7 @@ contract GameOfShips {
         emit RevealTimeout(_gameIndex);
         emit GameFinished(_gameIndex);
         game.bomber.transfer(game.prize);
-        game.creator.transfer(game.payedBombCost);
+        game.creator.transfer(game.paidBombsCost);
     }
     
     function getShipsHash(Ship[5] memory _ships, bytes32 _seed) private pure returns(bytes32) {

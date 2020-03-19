@@ -3,37 +3,31 @@ const
     revealRouter = express.Router();
     mongoose = require('mongoose'),
     config = require('../config/config'),
-    RevealedGame = mongoose.model('revealedGame'),
-    { sha256, calcGameHash } = require('../helpers/hashing'),
-    TruffleContract = require('@truffle/contract'),
-    MainContractAbi = require('../build/contracts/GameOfShips.json');
+    CachedGame = mongoose.model('cachedGame'),
+    { calcGameHash } = require('../helpers/hashing');
 
 revealRouter.post('/', async (req, res) => {
     let { seed, gameIndex, ships } = req.body;
 
-    const revealedGame = new RevealedGame({ seed, gameIndex, ships });
+    const game = await CachedGame.findOne({ gameIndex });
 
+    if (!game) {
+        res.status(404).send({ error: 'Game not found' });
+        return;
+    }
+
+    if (game.revealedData.ships.length && game.revealedData.seed) {
+        res.status(304).send({ error: 'This game was already revealed' });
+        return;
+    }
+
+    game.revealedData = { ships, seed };
     // Validate basic structure
-    const validationFailed = revealedGame.validateSync();
+    const validationFailed = game.validateSync();
     if (validationFailed) {
         const { errors = [] } = validationFailed;
+        console.log('Validation errors', errors);
         res.status(400).send({ error: `Request basic validation failed!${ errors.length ? ' Errors: ' + errors.join('; ') : '' }` });
-        return;
-    }
-
-    // Check if already revealed
-    if (await RevealedGame.findOne({ gameIndex })) {
-        res.status(400).send({ error: 'This game was already revealed' });
-        return;
-    }
-    
-    // Check if contract exists
-    const MainContract = TruffleContract(MainContractAbi);
-    MainContract.setProvider(config.web3Provider);
-    const MainContractInstance = await MainContract.deployed();
-    const game = await MainContractInstance.games(gameIndex);
-    if (!game) {
-        res.status(400).send({ error: 'Game not found' });
         return;
     }
 
@@ -46,7 +40,8 @@ revealRouter.post('/', async (req, res) => {
 
     // Save revealed game data
     try {
-        await revealedGame.save();
+        // TODO: FineOneAndUpdate (will be actually atomic? Research that)
+        await game.save();
         res.status(200).send('OK');
     } catch (e) {
         console.log(e);
@@ -57,12 +52,12 @@ revealRouter.post('/', async (req, res) => {
 revealRouter.get('/:gameIndex', async (req, res) => {
     let { gameIndex } = req.params;
 
-    const revealedGameData = await RevealedGame
+    const { revealedData = false } = await CachedGame
         .findOne({ gameIndex })
-        .select('-_id gameIndex ships seed')
+        .select('-_id revealedData')
         .lean();
 
-    res.json(revealedGameData);
+    res.json(revealedData);
 });
 
 

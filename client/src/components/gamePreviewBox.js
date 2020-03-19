@@ -121,51 +121,51 @@ export default class GamePreviewBox extends Component {
         const statusLabels = { [NEW]: 'New', [IN_PROGRESS]: 'In progress', [FINISHED]: 'Finished' };
         return (
             <StyledGamePreviewBox>
-                <GameStatusLabel status={ game.data.status }>
-                    Game #{ game.index } ({ statusLabels[game.data.status] })
+                <GameStatusLabel status={ game.status }>
+                    Game #{ game.gameIndex } ({ statusLabels[game.status] })
                 </GameStatusLabel>
                 <PreviewBoxInner>
                     <GameData>
                         <GameDataRow
                             icon={<PrizeIcon />}
                             dataName={'Prize'}
-                            dataVal={game.data.prize}
+                            dataVal={game.prize}
                             unit={'ETH'} />
                         <GameDataRow
                             icon={<BombCostIcon />}
                             dataName={ 'Bomb cost' }
-                            dataVal={game.data.bombCost}
+                            dataVal={game.bombCost}
                             unit={'ETH'}/>
-                        { game.data.status === NEW && (<>
+                        { game.status === NEW && (<>
                             <GameDataRow
                                 icon={<RevealTimeoutIcon />}
                                 dataName={'Reveal timeout'}
-                                dataVal={game.data.revealTimeoutBlocks}
+                                dataVal={game.revealTimeoutBlocks}
                                 unit={'blocks'}/>
                             <GameDataRow
                                 icon={<JoinTimeoutIcon />}
                                 dataName={'Join timeout block'}
-                                dataVal={'#'+game.data.joinTimeoutBlockNumber}
-                                dataInfo={ <BlocksCountdown targetBlock={game.data.joinTimeoutBlockNumber} /> }/>
+                                dataVal={'#'+game.joinTimeoutBlockNumber}
+                                dataInfo={ <BlocksCountdown targetBlock={game.joinTimeoutBlockNumber} /> }/>
                         </>) }
-                        { game.data.status === IN_PROGRESS && (<>
+                        { game.status === IN_PROGRESS && (<>
                             <GameDataRow
                                 icon={<BombCostIcon />}
                                 dataName={'Attack cost paid'}
-                                dataVal={game.data.payedBombCost}
-                                dataInfo={ Math.round(game.data.payedBombCost / game.data.bombCost) + ' bombs placed'}
+                                dataVal={game.paidBombsCost}
+                                dataInfo={ Math.round(game.paidBombsCost / game.bombCost) + ' bombs placed'}
                                 unit={'ETH'} />
                             <GameDataRow
                                 icon={<RevealTimeoutIcon />}
                                 dataName={'Reveal timeout block'}
-                                dataVal={'#'+game.data.revealTimeoutBlockNumber}
-                                dataInfo={ <BlocksCountdown targetBlock={game.data.revealTimeoutBlockNumber} /> }/>
+                                dataVal={'#'+game.revealTimeoutBlockNumber}
+                                dataInfo={ <BlocksCountdown targetBlock={game.revealTimeoutBlockNumber} /> }/>
                         </>) }
                     </GameData>
-                    <JoinButton theme={ themes.primary } as={ Link } to={ generateGamePath(game.index) }>
-                        { game.data.status === NEW  && 'JOIN' }
-                        { game.data.status === IN_PROGRESS  && 'WATCH' }
-                        { game.data.status === FINISHED  && 'SEE DETAILS' }
+                    <JoinButton theme={ themes.primary } as={ Link } to={ generateGamePath(game.gameIndex) }>
+                        { game.status === NEW  && 'JOIN' }
+                        { game.status === IN_PROGRESS  && 'WATCH' }
+                        { game.status === FINISHED  && 'SEE DETAILS' }
                     </JoinButton>
                 </PreviewBoxInner>
             </StyledGamePreviewBox>

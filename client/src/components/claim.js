@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { BigButton, themes } from './navigation/buttons';
 import styled from 'styled-components';
+import { round } from '../helpers/math';
 
 const ClaimedInfo = styled.div``;
 
@@ -21,7 +22,7 @@ export default class Claim extends Component {
         return (
             !claimTx ? (
                 <BigButton theme={themes.primary} onClick={this.claim} shining>
-                    Claim { amount } ETH!
+                    Claim { round(amount, 8) } ETH!
                 </BigButton>
             ) : (
                 <ClaimedInfo>

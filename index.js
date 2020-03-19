@@ -15,8 +15,14 @@ app.use(body_parser.json());
 app.use(body_parser.urlencoded({ extended: true }));
 
 mongoose.connect(config.mongoURI);
-require('./models/RevealedGame');
+require('./models/cachedGame');
+require('./models/cachedEvent');
 
 app.use('/reveal', require('./routes/revealRoutes'));
+app.use('/games', require('./routes/gamesRoutes'));
 
-app.listen(PORT, () => console.log( (in_production ? 'Prod' : 'Dev') + ' SERVER active on port ' + PORT));
+const initBlockchainConnection = require('./initBlockchainConnection');
+
+initBlockchainConnection().then(() => {
+	app.listen(PORT, () => console.log( (in_production ? 'Prod' : 'Dev') + ' SERVER active on port ' + PORT));
+});
