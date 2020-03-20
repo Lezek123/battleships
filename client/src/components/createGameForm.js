@@ -44,6 +44,9 @@ const ShipsSection = styled.div`
     width: 500px;
     flex-shrink: 1;
 `;
+const ShipsFieldInfo = styled.div`
+    margin-top: 10px;
+`;
 
 const GameCreated = styled.div`
     ${ centerFlex('column') };
@@ -215,6 +218,11 @@ export default class CreateGameForm extends Component {
                         <ShipsSection>
                             <FormSectionTitle>Ships:</FormSectionTitle>
                             <ShipsBoard onPlacement={ this.onShipPlacement } />
+                            { data.ships.length < 5 && (
+                                <ShipsFieldInfo>
+                                    <FieldInfo>{ 5 - data.ships.length } { data.ships.length > 1 ? 'ships' : 'ship' } left to place</FieldInfo>
+                                </ShipsFieldInfo>
+                            ) }
                         </ShipsSection>
                     </GameFormSections>
                     <Submit text="Create game" disabled={ !this.isValid() }/>
