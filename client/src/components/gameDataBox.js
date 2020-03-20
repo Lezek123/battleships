@@ -93,7 +93,7 @@ export default class GameDataBox extends Component {
                     <GameDataRow
                         icon={<BombCostIcon />}
                         dataName={'Bombs placed'}
-                        dataVal={ Math.round(game.paidBombsCost / game.bombCost) }/>
+                        dataVal={ game.bombsBoard.reduce((prev, row) => prev += row.filter(f => f).length, 0) }/>
                 </>) }
                 { game.status === IN_PROGRESS && (
                     <GameDataRow

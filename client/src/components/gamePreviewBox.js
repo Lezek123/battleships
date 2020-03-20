@@ -161,7 +161,7 @@ export default class GamePreviewBox extends Component {
                                 icon={<BombCostIcon />}
                                 dataName={'Attack cost paid'}
                                 dataVal={game.paidBombsCost || 0 }
-                                dataInfo={ Math.round(game.paidBombsCost / game.bombCost) + ' bombs placed'}
+                                dataInfo={ game.bombsBoard.reduce((prev, row) => prev += row.filter(f => f).length, 0) + ' bombs placed'}
                                 unit={'ETH'} />
                         ) }
                         { game.status === IN_PROGRESS && (
