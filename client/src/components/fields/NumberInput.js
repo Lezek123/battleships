@@ -15,6 +15,12 @@ export default class NumberInput extends Component {
         let value = modifiedValue || e.target.value;
         value = value.replace(/[^0-9\.\,]/g, '');
         value = value.replace(',', '.');
+        const decimalPointIndex = value.indexOf('.');
+        while (decimalPointIndex && value.indexOf('.', decimalPointIndex + 1) !== -1) {
+            const removeIndex = value.indexOf('.', decimalPointIndex + 1);
+            value = value.slice(0, removeIndex) + value.slice(removeIndex + 1);
+        }
+        value = value.replace(/(\.[0-9]{8})[0-9]+$/, '$1');
         const errors = this.validateByValue(value);
         this.setState({ needsReload: false });
         originOnChange(e, value, passedErrors.concat(errors));
