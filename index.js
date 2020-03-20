@@ -1,14 +1,15 @@
 const
 	in_production = process.env.NODE_ENV === 'production',
-	PORT = in_production ? 80 : 8000;
+	PORT = process.env.PORT || 8000;
 
 const
 	express	= require('express'),
 	expressSession = require('express-session'),
     app = express(),
     config = require('./config/config'),
-    mongoose = require('mongoose');
-	body_parser	= require('body-parser');
+    mongoose = require('mongoose'),
+	body_parser	= require('body-parser'),
+	path = require('path');
 
 app.use(expressSession({secret: config.sessionSecret, resave: false, saveUninitialized: false }));
 app.use(body_parser.json());
@@ -25,5 +26,11 @@ app.use('/games', require('./routes/gamesRoutes'));
 const initBlockchainConnection = require('./initBlockchainConnection');
 
 initBlockchainConnection().then(() => {
+	if (in_production) {
+		app.use(express.static('client/build'));
+		app.get('*', (req, res) => {
+			res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
+		});
+	}
 	app.listen(PORT, () => console.log( (in_production ? 'Prod' : 'Dev') + ' SERVER active on port ' + PORT));
 });
