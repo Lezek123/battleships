@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import Board from './board';
 import styled, { css } from 'styled-components';
 import { centerFlex } from '../styles/basic';
+import bombImg from '../images/bomb.png';
 
 const StyledBombsBoard = styled.div`
     width: 100%;
@@ -21,6 +22,7 @@ export default class BombsBoard extends Component {
                     ySize={10}
                     objectXSize={1}
                     objectYSize={1}
+                    objectImage={<img src={ bombImg } alt="Bomb" />}
                     onPlacement={ onPlacement }
                     onChange={ onChange }
                     lockedBoard={ lockedBoard }
