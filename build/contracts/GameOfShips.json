@@ -24920,9 +24920,185 @@
     "name": "solc",
     "version": "0.5.12+commit.7709ece9.Emscripten.clang"
   },
-  "networks": {},
+  "networks": {
+    "3": {
+      "events": {
+        "0xc2c8952413d90d1b917cf0cb878ac14548f52a72eaa1359b703e35f32008db41": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "_gameIndex",
+              "type": "uint32"
+            },
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "_bomber",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint128",
+              "name": "_bombsBoard",
+              "type": "uint128"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "_paidBombsCost",
+              "type": "uint256"
+            }
+          ],
+          "name": "BombsPlaced",
+          "type": "event",
+          "signature": "0xc2c8952413d90d1b917cf0cb878ac14548f52a72eaa1359b703e35f32008db41"
+        },
+        "0x24985762039c9bb2e45c8b4f0e475c5f16d2b2d4084d8360f39bcd2d8f28992f": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "_gameIndex",
+              "type": "uint32"
+            },
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "_creator",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "bytes32",
+              "name": "_creationHash",
+              "type": "bytes32"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "_prize",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "_bombCost",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint16",
+              "name": "_revealTimeoutBlocks",
+              "type": "uint16"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint16",
+              "name": "_joinTimeoutBlocks",
+              "type": "uint16"
+            }
+          ],
+          "name": "GameCreated",
+          "type": "event",
+          "signature": "0x24985762039c9bb2e45c8b4f0e475c5f16d2b2d4084d8360f39bcd2d8f28992f"
+        },
+        "0x7cd473302c66b90de6c33335c1150b2d0c653a68e63dfbba07987b1b095d699e": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "_gameIndex",
+              "type": "uint32"
+            },
+            {
+              "indexed": false,
+              "internalType": "bool",
+              "name": "_isCreatorClaimer",
+              "type": "bool"
+            }
+          ],
+          "name": "GameFinished",
+          "type": "event",
+          "signature": "0x7cd473302c66b90de6c33335c1150b2d0c653a68e63dfbba07987b1b095d699e"
+        },
+        "0x258d7183049b93fab1c2bfa7b6b017b265bf8ae00cba8d1b5de12a658c0c7bd5": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "_gameIndex",
+              "type": "uint32"
+            }
+          ],
+          "name": "JoinTimeout",
+          "type": "event",
+          "signature": "0x258d7183049b93fab1c2bfa7b6b017b265bf8ae00cba8d1b5de12a658c0c7bd5"
+        },
+        "0xfd858131d7b916891e8e2ca8bc0bfa5740ca46d588b9d3c074f359b1a54e3b3e": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "_gameIndex",
+              "type": "uint32"
+            }
+          ],
+          "name": "RevealTimeout",
+          "type": "event",
+          "signature": "0xfd858131d7b916891e8e2ca8bc0bfa5740ca46d588b9d3c074f359b1a54e3b3e"
+        },
+        "0x2dfdd0de1636e713b34bbd87916d78150c7616add462d399f864c7621160378a": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "_gameIndex",
+              "type": "uint32"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "uint8",
+                  "name": "beginX",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "uint8",
+                  "name": "beginY",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "vertical",
+                  "type": "bool"
+                }
+              ],
+              "indexed": false,
+              "internalType": "struct GameOfShips.Ship[5]",
+              "name": "_ships",
+              "type": "tuple[5]"
+            }
+          ],
+          "name": "ShipsRevealed",
+          "type": "event",
+          "signature": "0x2dfdd0de1636e713b34bbd87916d78150c7616add462d399f864c7621160378a"
+        }
+      },
+      "links": {},
+      "address": "0x1616E651387435Eb25F993B069F2eBcB98879aE5",
+      "transactionHash": "0xf8e58dcd401c0a9613dd6cf1d094824efb25c1d7d148d3bc3d5940a159c7a1dc"
+    }
+  },
   "schemaVersion": "3.0.19",
-  "updatedAt": "2020-03-20T21:20:22.852Z",
+  "updatedAt": "2020-03-20T21:47:01.989Z",
+  "networkType": "ethereum",
   "devdoc": {
     "methods": {}
   },
