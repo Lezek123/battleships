@@ -116,14 +116,16 @@ export const GameDataRow = ({ dataName, dataVal, dataInfo, unit, icon }) => (
 
 export default class GamePreviewBox extends Component {
     render() {
-        const { game } = this.props;
+        const { game, showHeader = true, showActions = true } = this.props;
         const { NEW, IN_PROGRESS, FINISHED } = GAME_STATUSES;
         const statusLabels = { [NEW]: 'New', [IN_PROGRESS]: 'In progress', [FINISHED]: 'Finished' };
         return (
             <StyledGamePreviewBox>
-                <GameStatusLabel status={ game.status }>
-                    Game #{ game.gameIndex } ({ statusLabels[game.status] })
-                </GameStatusLabel>
+                { showHeader && (
+                    <GameStatusLabel status={ game.status }>
+                        Game #{ game.gameIndex } ({ statusLabels[game.status] })
+                    </GameStatusLabel>
+                ) }
                 <PreviewBoxInner>
                     <GameData>
                         <GameDataRow
@@ -162,11 +164,13 @@ export default class GamePreviewBox extends Component {
                                 dataInfo={ <BlocksCountdown targetBlock={game.revealTimeoutBlockNumber} /> }/>
                         </>) }
                     </GameData>
-                    <JoinButton theme={ themes.primary } as={ Link } to={ generateGamePath(game.gameIndex) }>
-                        { game.status === NEW  && 'JOIN' }
-                        { game.status === IN_PROGRESS  && 'WATCH' }
-                        { game.status === FINISHED  && 'SEE DETAILS' }
-                    </JoinButton>
+                    { showActions && (
+                        <JoinButton theme={ themes.primary } as={ Link } to={ generateGamePath(game.gameIndex) }>
+                            { game.status === NEW  && 'JOIN' }
+                            { game.status === IN_PROGRESS  && 'WATCH' }
+                            { game.status === FINISHED  && 'SEE DETAILS' }
+                        </JoinButton>
+                    ) }
                 </PreviewBoxInner>
             </StyledGamePreviewBox>
         )

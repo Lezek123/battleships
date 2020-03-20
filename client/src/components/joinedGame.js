@@ -10,15 +10,16 @@ import { breakpoints as bp, breakpointHit } from '../constants/breakpoints';
 import TimeoutClaim from './timeoutClaim';
 import { JoinTimeoutIcon } from '../constants/icons';
 import Loader from './loader';
+import GamePreviewBox from './gamePreviewBox';
 // import { useParams } from 'react-router-dom';
 
 const StyledGame = styled.div`
     width: 100%;
-    max-width: 550px;
     ${ centerFlex('column') };
 `;
 const AttackForm = styled.form`
     width: 100%;
+    max-width: 550px;
     ${ centerFlex('column') }
 `;
 const PlacedBombsSummary = styled.div`
@@ -90,35 +91,40 @@ export default class JoinedGame extends Component {
         if (attacking) return <Loader text={ 'Placing bombs...' }/>
         return (
             <StyledGame>
-                <JoinedGameTitle>Place your bombs</JoinedGameTitle>
-                <AttackForm onSubmit={ this.submitAttack }>
-                    <FormField>
-                        <BombsBoard onChange={ this.handleBombBoardChange }/>
-                        <PlacedBombsSummary>
-                            <SummaryRow>
-                                <SummaryName>Bombs placed:</SummaryName>
-                                <SummaryValue>{ placedBombsCount }</SummaryValue>
-                            </SummaryRow>
-                            <SummaryRow>
-                                <SummaryName>Total bombs cost:</SummaryName>
-                                <SummaryValue>{ round(placedBombsCount * bombCost, 8) } ETH</SummaryValue>
-                            </SummaryRow>
-                            <SummaryRow>
-                                <SummaryName>Winning reward:</SummaryName>
-                                <SummaryValue>{ round(prize - placedBombsCount * bombCost, 8) } ETH</SummaryValue>
-                            </SummaryRow>
-                        </PlacedBombsSummary>
-                        { !this.isAttackValid() && <FieldInfo>You have to place at least 25 bombs</FieldInfo> }
-                    </FormField>
-                    <Submit text="Attack" disabled={ !this.isAttackValid() } />
-                </AttackForm>
-                <TimeoutClaim
-                    timeoutName="Join"
-                    timeoutIcon={ <JoinTimeoutIcon /> }
-                    timeoutBlock={ joinTimeoutBlockNumber }
-                    canUserClaim={ isUserCreator }
-                    claimMethod={ async () => await this._contractManager.claimJoinTimeoutReturn(gameIndex) }
-                    claimAmount={ prize }/>
+                { !isUserCreator && (<>
+                    <JoinedGameTitle>Place your bombs</JoinedGameTitle>
+                    <AttackForm onSubmit={ this.submitAttack }>
+                        <FormField>
+                            <BombsBoard onChange={ this.handleBombBoardChange }/>
+                            <PlacedBombsSummary>
+                                <SummaryRow>
+                                    <SummaryName>Bombs placed:</SummaryName>
+                                    <SummaryValue>{ placedBombsCount }</SummaryValue>
+                                </SummaryRow>
+                                <SummaryRow>
+                                    <SummaryName>Total bombs cost:</SummaryName>
+                                    <SummaryValue>{ round(placedBombsCount * bombCost, 8) } ETH</SummaryValue>
+                                </SummaryRow>
+                                <SummaryRow>
+                                    <SummaryName>Winning reward:</SummaryName>
+                                    <SummaryValue>{ round(prize - placedBombsCount * bombCost, 8) } ETH</SummaryValue>
+                                </SummaryRow>
+                            </PlacedBombsSummary>
+                            { !this.isAttackValid() && <FieldInfo>You have to place at least 25 bombs</FieldInfo> }
+                        </FormField>
+                        <Submit text="Attack" disabled={ !this.isAttackValid() } />
+                    </AttackForm>
+                </>) }
+                { isUserCreator && (<>
+                    <GamePreviewBox game={this.props.game} showHeader={false} showActions={false}/>
+                    <TimeoutClaim
+                        timeoutName="Join"
+                        timeoutIcon={ <JoinTimeoutIcon /> }
+                        timeoutBlock={ joinTimeoutBlockNumber }
+                        canUserClaim={ isUserCreator }
+                        claimMethod={ async () => await this._contractManager.claimJoinTimeoutReturn(gameIndex) }
+                        claimAmount={ prize }/>
+                </>) }
             </StyledGame>
         )
     }
