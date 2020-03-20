@@ -61,22 +61,57 @@ const StartScreenLink = styled(BigButton)`
 	}
 `;
 
+const MetamaskScreen = styled.div`
+	font-size: 20px;
+	${ centerFlex('column') };
+`;
+const MetamaskScreenInfo = styled.div`
+	color: ${ color.INFO_LIGHT };
+	margin-bottom: 20px;
+	font-weight: 600;
+`;
+
 class App extends Component {
 	state = {
 		initialized: false,
+		metamaskScreen: false,
 		mainContractAddr: null,
 	}
 
 	async componentWillMount() {
 		this._contractsManager = new ContractsManager();
 		this._web3 = await this._contractsManager.getWeb3();
-		const MainContractInstance = await this._contractsManager.getMainContractInstance();
-		this.setState({ initialized: true, mainContractAddr: MainContractInstance.address });
+		if (this._web3) {
+			const MainContractInstance = await this._contractsManager.getMainContractInstance();
+			this.setState({ initialized: true, mainContractAddr: MainContractInstance.address });
+		}
+		else {
+			this.setState({ metamaskScreen: true });
+		}
 	}
 
 	render() {
+		const { initialized, metamaskScreen } = this.state;
 		const { fetchUsersGames, getUsersGamesCount, fetchAllGames, getAllGamesCount } = this._contractsManager;
-		if (!this.state.initialized) return <StyledApp><Loader /></StyledApp>;
+
+		if (metamaskScreen) {
+			return (
+				<StyledApp>
+					<MetamaskScreen>
+						<MetamaskScreenInfo>
+							You'll need a browser Ethereum wallet in order to interact with this page!
+						</MetamaskScreenInfo>
+						<BigButton as={'a'} href={`https://chrome.google.com/webstore/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn`} target="_blank">
+							Download MetaMask Chrome extension
+						</BigButton>
+					</MetamaskScreen>
+				</StyledApp>
+			)
+		}
+		else if (!initialized) {
+			return <StyledApp><Loader /></StyledApp>;
+		}
+
 		return (
 			<StyledApp>
 				{ this.props.location.pathname !== '/' && (<>

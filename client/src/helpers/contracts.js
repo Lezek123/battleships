@@ -58,32 +58,27 @@ export default class ContractsManager {
     }
 
     initWeb3 = async () => {
-        // TODO: Some sane error handling here (like displaying "Download Metamask" page etc.)
         let provider = null;
         if (window.ethereum) {
             provider = window.ethereum;
-            try {
-                // Request account access
-                await window.ethereum.enable();
-            } catch (error) {
-                alert('This website will not work properly unless you enable MetaMask access :(');
-                return null;
-            }
+            await window.ethereum.enable();
         }
         // Legacy dapp browsers...
         else if (window.web3) {
             provider = window.web3.currentProvider;
         }
-        // If no injected web3 instance is detected, fall back to Ganache
         else {
-            alert('You need MetaMask in order use this website!');
-            return null;
+            throw 'Cannot init web3';
         }
         return new Web3(provider);
     }
     
     getWeb3 = async () => {
-        await this.load();
+        try {
+            await this.load();
+        } catch(e) {
+            return null;
+        }
         return this._web3;
     }
 
