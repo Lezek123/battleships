@@ -119,7 +119,7 @@ export default class Input extends Component {
         let { target: { value } } = e;
 
         let errors = [];
-        if (value === '' && required) errors.push(`Te pole jest wymagane!`);
+        if (value === '' && required) errors.push(`This field is required!`);
 
         this.setState({ errors });
 

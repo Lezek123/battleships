@@ -30,8 +30,8 @@ export default class NumberInput extends Component {
         const { min, max } = this.props;
 
         let errors = [];
-        if (parseFloat(value) > max) errors.push(`Maksymalna wartość to: ${ max }`);
-        if (parseFloat(value) < min) errors.push(`Minimalna wartość to: ${ min }`);
+        if (parseFloat(value) > max) errors.push(`Max. value is: ${ max }`);
+        if (parseFloat(value) < min) errors.push(`Min. value is: ${ min }`);
 
         this.setState({ errors });
 

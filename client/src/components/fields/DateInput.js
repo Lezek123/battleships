@@ -9,8 +9,8 @@ export default class DateInput extends Component {
         let { target: { value } } = e;
 
         let errors = [];
-        if (new Date(value) > new Date(max)) errors.push(`Maksymalna wartość to: ${ max }`);
-        if (new Date(value) < new Date(min)) errors.push(`Minimalna wartość to: ${ min }`);
+        if (new Date(value) > new Date(max)) errors.push(`Max. value is: ${ max }`);
+        if (new Date(value) < new Date(min)) errors.push(`Min. value is: ${ min }`);
 
         this.setState({ errors });
 
