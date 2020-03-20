@@ -101,6 +101,12 @@ const InputUnit = styled.div`
 export default class Input extends Component {
     state = { errors: [] };
 
+    componentDidUpdate = (prevProps) => {
+        if (prevProps.needsReload !== this.props.needsReload && this.props.needsReload) {
+            this.onChange({ target: { name: this.props.name, value: this.props.value }});
+        }
+    }
+
     getErrors() {
         const { errors: stateErrors } = this.state;
         const { errors: passedErrors = [] } = this.props;
@@ -139,7 +145,7 @@ export default class Input extends Component {
                         name={ name }
                         value={ value }
                         onChange={ this.onChange }
-                        autocomplete="off"
+                        autoComplete="off"
                         min={ min }
                         max={ max }/>
                     { unit && <InputUnit>{ unit }</InputUnit> }

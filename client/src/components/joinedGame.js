@@ -9,6 +9,7 @@ import BombsBoard from './bombsBoard';
 import { breakpoints as bp, breakpointHit } from '../constants/breakpoints';
 import TimeoutClaim from './timeoutClaim';
 import { JoinTimeoutIcon } from '../constants/icons';
+import Loader from './loader';
 // import { useParams } from 'react-router-dom';
 
 const StyledGame = styled.div`
@@ -42,7 +43,8 @@ const JoinedGameTitle = styled.h1`
 
 export default class JoinedGame extends Component {
     state = {
-        bombsBoard: null
+        bombsBoard: null,
+        attacking: false,
     }
 
     componentWillMount() {
@@ -71,13 +73,21 @@ export default class JoinedGame extends Component {
         const { bombsBoard } = this.state;
         const bombsCost = bombCost * this.getPlacedBombsCount();
 
-        await this._contractManager.setBombsInGame(gameIndex, bombsBoard, bombsCost);
+        this.setState({ attacking: true });
+        try {
+            await this._contractManager.setBombsInGame(gameIndex, bombsBoard, bombsCost);
+            // Will be automatically handled by refresh in GamePage
+        } catch(e) {
+            this.setState({ bombsBoard: null, attacking: false });
+        }
     }
 
     render() {
+        const { attacking } = this.state;
         const { game: { gameIndex, bombCost, prize, joinTimeoutBlockNumber, isUserCreator } } = this.props;
         const placedBombsCount = this.getPlacedBombsCount();
         
+        if (attacking) return <Loader text={ 'Placing bombs...' }/>
         return (
             <StyledGame>
                 <JoinedGameTitle>Place your bombs</JoinedGameTitle>
@@ -98,7 +108,7 @@ export default class JoinedGame extends Component {
                                 <SummaryValue>{ round(prize - placedBombsCount * bombCost, 8) } ETH</SummaryValue>
                             </SummaryRow>
                         </PlacedBombsSummary>
-                        { !this.isAttackValid() && <FieldInfo text={ `You have to place at least 25 bombs` } /> }
+                        { !this.isAttackValid() && <FieldInfo>You have to place at least 25 bombs</FieldInfo> }
                     </FormField>
                     <Submit text="Attack" disabled={ !this.isAttackValid() } />
                 </AttackForm>

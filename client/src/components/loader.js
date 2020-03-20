@@ -67,6 +67,7 @@ const BoxLoaderBox = styled.div`
 const BoxLoaderText = styled.div`
     margin-top: 10px;
     color: #fff;
+    font-size: 14px;
 `;
 
 class BoxLoader extends Component {

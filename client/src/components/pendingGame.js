@@ -11,6 +11,7 @@ import ContractManager from '../helpers/contracts';
 import TimeoutClaim from './timeoutClaim';
 import Claim from './claim';
 import { round } from '../helpers/math';
+import ContractsManager from '../helpers/contracts';
 
 const StyledGame = styled.div`
     width: 100%;
@@ -64,7 +65,10 @@ export default class PendingGame extends Component {
         isUserWinner: null,
     };
 
-    // TODO: Refresh interval (to check for revealed ships)
+    constructor(props) {
+        super(props);
+        this._contractManager = new ContractsManager();
+    }
 
     determineWinner = async () => {
         const { shipsBoard } = this.state;

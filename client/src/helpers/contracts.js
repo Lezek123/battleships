@@ -260,24 +260,20 @@ export default class ContractsManager {
 		
 		const creatorAddr = await this.getUserAddr();
 
-		try {
-			const gameHash = calcGameHash(ships, creationSeed);
-			bombCost = this._web3.utils.toWei(bombCost);
-			initialValue = this._web3.utils.toWei(initialValue);
-
-			const gameConstructorArgs = [
-				gameHash,
-				bombCost,
-				revealTimeoutBlocks,
-				joinTimeoutBlocks,
-				{ from: creatorAddr, value: initialValue }
-			];
-
-			console.log('Creating new game with args:', gameConstructorArgs);
-			await this._mainContractInstance.createGame(...gameConstructorArgs);
-		} catch(e) {
-			console.log(e);
-		}
+		const gameHash = calcGameHash(ships, creationSeed);
+		bombCost = this._web3.utils.toWei(bombCost);
+        initialValue = this._web3.utils.toWei(initialValue);
+        
+		const gameConstructorArgs = [
+			gameHash,
+			bombCost,
+			revealTimeoutBlocks,
+			joinTimeoutBlocks,
+			{ from: creatorAddr, value: initialValue }
+        ];
+        console.log('Creating new game with args:', gameConstructorArgs);
+        
+		return await this._mainContractInstance.createGame(...gameConstructorArgs);
     }
 
     setBombsInGame = async (gameIndex, bombsBoard, ethCost) => {

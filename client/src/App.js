@@ -74,10 +74,6 @@ class App extends Component {
 		this.setState({ initialized: true, mainContractAddr: MainContractInstance.address });
 	}
 
-	handleGameCreation = async (gameData) => {
-		await this._contractsManager.createGame(gameData);
-	}
-
 	render() {
 		const { fetchUsersGames, getUsersGamesCount, fetchAllGames, getAllGamesCount } = this._contractsManager;
 		if (!this.state.initialized) return <StyledApp><Loader /></StyledApp>;
@@ -96,7 +92,7 @@ class App extends Component {
 							return <Game index={props.match.params.id} />;
 						} } />
 						<Route path={ CREATE_GAME_PATH }>
-							<CreateGameForm onSubmit={ this.handleGameCreation } />
+							<CreateGameForm />
 						</Route>
 						<Route path={ GAMES_LIST_PATH }>
 							<GamesListWrapper fetchMethod={ fetchAllGames } countMethod={ getAllGamesCount } />

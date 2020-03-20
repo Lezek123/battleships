@@ -25,10 +25,13 @@ const FieldInfoIcon = styled(InfoIcon)`
     margin-right: 8px;
     flex-shrink: 0;
 `;
+const FieldInfoContent = styled.span``;
 
-export const FieldInfo = ({ text }) => (
+export const FieldInfo = ({ children }) => (
     <StyledFieldInfo>
         <FieldInfoIcon />
-        { text }
+        <FieldInfoContent>
+            { children }
+        </FieldInfoContent>
     </StyledFieldInfo>
 );

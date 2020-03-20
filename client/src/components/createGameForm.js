@@ -9,6 +9,10 @@ import { FormField, FieldInfo } from './fields/formFields';
 import { BombCostIcon, PrizeIcon, JoinTimeoutIcon, RevealTimeoutIcon } from '../constants/icons';
 import { breakpointHit, breakpointNotHit, breakpoints as bp } from '../constants/breakpoints';
 import Loader from './loader';
+import ContractsManager from '../helpers/contracts';
+import { BigButton, themes } from './navigation/buttons';
+import { generateGamePath } from '../constants/routes';
+import { Link } from 'react-router-dom';
 
 const StyledGameFormContainer = styled.div`
     ${ centerFlex('column') }
@@ -41,26 +45,40 @@ const ShipsSection = styled.div`
     flex-shrink: 1;
 `;
 
+const GameCreated = styled.div`
+    ${ centerFlex('column') }
+`;
+const GameCreatedTitle = styled.h1``;
+
 export default class CreateGameForm extends Component {
-    state = {
-        data: {
-            initialValue: '0.01',
-            bombCost: '0.0002',
-            joinTimeoutBlocks: Math.round(24 * 60 * 60 / AVG_BLOCK_TIME).toString(),
-            revealTimeoutBlocks: Math.round(24 * 60 * 60 / AVG_BLOCK_TIME).toString(),
-            ships: [],
-        },
-        validity: {
-            initialValue: true,
-            bombCost: true,
-            joinTimeoutBlocks: true,
-            revealTimeoutBlocks: true
-        },
-        creating: false,
+    constructor(props) {
+        super(props);
+        this._contractsManager = new ContractsManager();
+        this.state = this.getInitialState();
+    }
+
+    getInitialState = () => {
+        return {
+            data: {
+                initialValue: '0.01',
+                bombCost: '0.00015',
+                joinTimeoutBlocks: Math.round(24 * 60 * 60 / AVG_BLOCK_TIME).toString(),
+                revealTimeoutBlocks: Math.round(24 * 60 * 60 / AVG_BLOCK_TIME).toString(),
+                ships: [],
+            },
+            validity: {
+                initialValue: true,
+                bombCost: true,
+                joinTimeoutBlocks: true,
+                revealTimeoutBlocks: true
+            },
+            creating: false,
+            created: false,
+            createdGameIndex: null
+        };
     }
 
     onInputChange = (e, modifiedValue = null, errors = []) => {
-        // FIXME: Cross-validity between initialValue and bombCost!
         const {target} = e;
         this.setState(
             ({ data, validity }) => (
@@ -69,7 +87,7 @@ export default class CreateGameForm extends Component {
                     validity: { ...validity, [target.name]: errors.length === 0 ? true : false }
                 }
             )
-        )
+        );
     }
 
     onShipPlacement = (ship) => {
@@ -91,17 +109,32 @@ export default class CreateGameForm extends Component {
 
     submit = (e) => {
         e.preventDefault();
-        const { onSubmit } = this.props;
 
         if (this.isValid()) {
-            this.setState({ creating: true }, () => onSubmit(this.state.data));
+            this.setState({ creating: true }, async () => {
+                try {
+                    let res = await this._contractsManager.createGame(this.state.data);
+                    this.setState({ creating: false, created: true, createdGameIndex: res.logs[0].args._gameIndex });
+                } catch(e) {
+                    console.log(e);
+                    this.setState(this.getInitialState());
+                }
+            });
         }
     }
 
     render() {
-        const { data, validity, creating } = this.state;
+        const { data, validity, creating, created, createdGameIndex } = this.state;
 
         if (creating) return <Loader text="Creating a new game..." />;
+        if (created) return (
+            <GameCreated>
+                <GameCreatedTitle>Game has been created!</GameCreatedTitle>
+                <BigButton theme={themes.primary} as={Link} to={ generateGamePath(createdGameIndex) }>
+                    GO TO GAME PAGE
+                </BigButton>
+            </GameCreated>
+        );
         return (
             <StyledGameFormContainer>
                 <h1>Create a game</h1>
@@ -135,8 +168,9 @@ export default class CreateGameForm extends Component {
                                     icon={ <BombCostIcon /> }
                                     />
                                     { (validity.initialValue && validity.bombCost) && (
-                                        <FieldInfo
-                                            text= { `Placing more than ${ Math.ceil(data.initialValue / data.bombCost) - 1 } bombs will become unprofitable` } />
+                                        <FieldInfo>
+                                            Placing more than <b>{ Math.ceil(data.initialValue / data.bombCost) - 1 } bombs</b> will become unprofitable
+                                        </FieldInfo>
                                     ) }
                             </FormField>
                             <FormField>
@@ -152,8 +186,9 @@ export default class CreateGameForm extends Component {
                                     icon={ <RevealTimeoutIcon /> }
                                     />
                                     { (validity.revealTimeoutBlocks) && (
-                                        <FieldInfo
-                                            text= { `For ${ AVG_BLOCK_TIME }s per block it's ` + blocksToRoundedInterval(data.revealTimeoutBlocks) } />
+                                        <FieldInfo>
+                                            For { AVG_BLOCK_TIME }s per block it's { blocksToRoundedInterval(data.revealTimeoutBlocks) }
+                                        </FieldInfo>
                                     ) }
                             </FormField>
                             <FormField>
@@ -169,8 +204,9 @@ export default class CreateGameForm extends Component {
                                         icon={ <JoinTimeoutIcon /> }
                                         />
                                 { (validity.joinTimeoutBlocks) && (
-                                    <FieldInfo
-                                        text= { `For ${ AVG_BLOCK_TIME }s per block it's ` + blocksToRoundedInterval(data.joinTimeoutBlocks) } />
+                                    <FieldInfo>
+                                        For { AVG_BLOCK_TIME }s per block it's { blocksToRoundedInterval(data.joinTimeoutBlocks) }
+                                    </FieldInfo>
                                 ) }
                             </FormField>
                         </ConfigSection>
