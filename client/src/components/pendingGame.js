@@ -1,59 +1,35 @@
 import React, { Component } from 'react';
 import styled from 'styled-components';
-import { compareBoards } from './board';
+import { compareBoards, DIFF_STATES } from './board';
 import ShipsBoard from './shipsBoard';
 import BombsBoard from './bombsBoard';
-import { centerFlex } from '../styles/basic';
 import Loader from './loader';
-import { PrizeIcon, RevealTimeoutIcon } from '../constants/icons';
-import { breakpoints as bp, breakpointHit } from '../constants/breakpoints';
-import ContractManager from '../helpers/contracts';
+import { PrizeIcon, RevealTimeoutIcon, LoseIcon } from '../constants/icons';
 import TimeoutClaim from './timeoutClaim';
 import Claim from './claim';
-import { round } from '../helpers/math';
 import ContractsManager from '../helpers/contracts';
+import colors from '../constants/colors';
+import GameDataBox from './gameDataBox';
+import { StyledGame, GameMain, GameData, LiveView, LiveViewTitle, BoardContainer, BoardLoader } from './gamePage';
+import { centerFlex } from '../styles/basic';
 
-const StyledGame = styled.div`
-    width: 100%;
-    max-width: 1100px;
-    ${ centerFlex('column') };
-`;
-const Snapshots = styled.div`
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    @media ${ breakpointHit(bp.PHONE )} {
-        flex-wrap: wrap;
-    }
-`;
-const SnapshotTitle = styled.h2`
-    margin: 0;
-`;
-const ShipsSnapshot = styled.div`
-    width: calc(50% - 10px);
-    ${ centerFlex('column') };
-    @media ${ breakpointHit(bp.PHONE )} {
-        margin-top: 20px;
-        width: 100%;
-    }
-`;
-const BombsSnapshot = styled.div`
-    width: calc(50% - 10px);
-    ${ centerFlex('column') };
-    @media ${ breakpointHit(bp.PHONE )} {
-        margin-top: 20px;
-        width: 100%;
-    }
+const WinnerInfoSection = styled.div`
+    margin: 15px 0;
+    ${ centerFlex('column') }
 `;
 const WinnerInfo = styled.div`
-    font-size: 22px;
-    margin: 20px 0;
-    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 26px;
+    font-weight: 600;
     display: flex;
     align-items: center;
+    color: ${ props => props.color ? props.color : 'inherit' };
 `;
 const WinnerIcon = styled.div`
+    font-size: 34px;
     margin-right: 8px;
+`;
+const WinnerClaim = styled.div`
 `;
 
 export default class PendingGame extends Component {
@@ -61,6 +37,7 @@ export default class PendingGame extends Component {
         revealedShips: null,
         revealedSeed: null,
         shipsBoard: null,
+        boardsDiff: null,
         winner: null,
         isUserWinner: null,
     };
@@ -75,16 +52,16 @@ export default class PendingGame extends Component {
         const { game: { bombsBoard, isUserCreator, isUserBomber } } = this.props;
 
         if (shipsBoard) {
-            const compareRes = compareBoards(shipsBoard, bombsBoard);
-            const isCreatorWinner = compareRes.some(row => row.some(resField => resField === 'a'));
+            const boardsDiff = compareBoards(shipsBoard, bombsBoard);
+            const isCreatorWinner = boardsDiff.some(row => row.some(resField => resField === DIFF_STATES.board1));
 
             const isUserWinner = (isCreatorWinner && isUserCreator) || (!isCreatorWinner && isUserBomber)
-            this.setState({ isUserWinner, winner: isCreatorWinner ? 'Creator' : 'Bomber' })
+            this.setState({ boardsDiff, isUserWinner, winner: isCreatorWinner ? 'Creator' : 'Bomber' })
         }
     }
 
     recieveShipsBoard = (board) => {
-        if (this.props.game.revealedData.ships.length) {
+        if (this.props.game.revealedData) {
             this.setState({ shipsBoard: board }, this.determineWinner);
         }
     }
@@ -99,27 +76,53 @@ export default class PendingGame extends Component {
     }
 
     render() {
-        const { winner, isUserWinner } = this.state;
+        const { winner, isUserWinner, boardsDiff } = this.state;
         const { game: { gameIndex, bombsBoard, prize, paidBombsCost, revealTimeoutBlockNumber, isUserCreator, isUserBomber, revealedData } } = this.props;
-
         return (
             <StyledGame>
-                <Snapshots>
-                    <ShipsSnapshot>
-                        { revealedData.ships.length ? 
-                            <>
-                                <SnapshotTitle>Ships:</SnapshotTitle>
-                                <ShipsBoard onChange={ this.recieveShipsBoard } lockedShips={ revealedData.ships }/>
-                            </>
+                {/* After winner is known */}
+                { (winner !== null) && (
+                    <WinnerInfoSection>
+                        { isUserWinner && (
+                            <WinnerInfo color={ colors.WIN }>
+                                <WinnerIcon><PrizeIcon /></WinnerIcon> You've WON!
+                            </WinnerInfo>
+                        ) }
+                        { (!isUserWinner && (isUserCreator || isUserBomber)) && (
+                            <WinnerInfo color={ colors.LOSE }>
+                                <WinnerIcon><LoseIcon /></WinnerIcon> You've LOST!
+                            </WinnerInfo>
+                        ) }
+                        { (!isUserCreator && !isUserBomber) && (
+                            <WinnerInfo>
+                                <WinnerIcon><PrizeIcon /></WinnerIcon> Winner: { winner }
+                            </WinnerInfo>
+                        ) }
+                        { isUserWinner && (
+                            <WinnerClaim>
+                                <Claim amount={ isUserCreator ? (paidBombsCost + prize) : prize } claimMethod={ this.claimWin }/>
+                            </WinnerClaim>
+                        ) }
+                    </WinnerInfoSection>
+                ) }
+                <GameMain>
+                    <GameData>
+                        <GameDataBox game={ this.props.game }/>
+                    </GameData>
+                    <LiveView>
+                        <LiveViewTitle>Results:</LiveViewTitle>
+                        { revealedData ? 
+                            <BoardContainer>
+                                <ShipsBoard onChange={ this.recieveShipsBoard } lockedShips={ revealedData.ships } boardsDiff={boardsDiff}/>
+                            </BoardContainer>
                             :
-                            <Loader text="Checking for revealed ships board..."/>
+                            <BoardContainer>
+                                <BombsBoard lockedBoard={ bombsBoard }/>
+                                <BoardLoader><Loader text="Waiting for revealed ships board..."/></BoardLoader>
+                            </BoardContainer>
                         }
-                    </ShipsSnapshot>
-                    <BombsSnapshot>
-                        <SnapshotTitle>Bombs:</SnapshotTitle>
-                        <BombsBoard lockedBoard={ bombsBoard }/>
-                    </BombsSnapshot>
-                </Snapshots>
+                    </LiveView>
+                </GameMain>
                 <TimeoutClaim
                     timeoutName="Reveal"
                     timeoutIcon={ <RevealTimeoutIcon /> }
@@ -127,13 +130,6 @@ export default class PendingGame extends Component {
                     canUserClaim={ isUserBomber }
                     claimMethod={ async () => await this._contractManager.claimBomberTimeoutWin(gameIndex) }
                     claimAmount={ prize }/>
-                {/* After winner is known */}
-                { (winner !== null) && (
-                    <WinnerInfo>
-                        <WinnerIcon><PrizeIcon /></WinnerIcon> Winner: { winner }
-                    </WinnerInfo>
-                ) }
-                { isUserWinner && <Claim amount={ isUserCreator ? (paidBombsCost + prize) : prize } claimMethod={ this.claimWin }/> }
             </StyledGame>
         )
     }

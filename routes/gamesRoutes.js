@@ -30,7 +30,7 @@ const userQuery = (userAddr) => (
 
 gamesRouter.get('/by_index/:gameIndex([0-9]+)', async (req, res) => {
     const { gameIndex } = req.params;
-    let game = await CachedGame.findOne({ gameIndex });
+    let game = await CachedGame.findOne({ gameIndex }).populate('revealedData');
     
     res.send(game);
 });
@@ -59,7 +59,7 @@ gamesRouter.get(`/:status(${ STATUS_REGEX })/:page([0-9]+)`, async (req, res) =>
     let games = await paginate(
         CachedGame.find(statusQuery(status)),
         page
-    ).sort({ gameIndex: -1 });
+    ).sort({ gameIndex: -1 }).populate('revealedData');
     
     res.send(games);
 });
@@ -83,7 +83,7 @@ gamesRouter.get(`/:status(${ STATUS_REGEX })/:userAddr/:page(([0-9]+)|all)`, asy
     let games = await paginate(
         CachedGame.find({...statusQuery(status), ...userQuery(userAddr) }),
         page
-    ).sort({ gameIndex: -1 });
+    ).sort({ gameIndex: -1 }).populate('revealedData');
     
     res.send(games);
 });

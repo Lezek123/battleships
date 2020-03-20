@@ -8,7 +8,6 @@ const StyledBombsBoard = styled.div`
     padding: 20px;
     border-radius: 20px;
     background: rgba(0, 0, 0, 0.2);
-    margin-top: 10px;
     ${ centerFlex('column') };
 `;
 

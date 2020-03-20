@@ -4,10 +4,7 @@ const
     Address = require('./types/Address').default,
     gameStatuses = require('../constants/gameStatuses');
 
-// Some basic validation
-const seedValidator = (seed) => seed.length === 32;
-const shipsValidator = (ships) => ships.length === 5;
-
+const schemaOptions = { toJSON: { virtuals: true } };
 const cachedGameSchema = new Schema({
     gameIndex: {
         type: Number,
@@ -36,19 +33,18 @@ const cachedGameSchema = new Schema({
     revealTimeoutBlocks: { type: Number, required: true },
     joinTimeoutBlockNumber: { type: Number, required: true },
     revealTimeoutBlockNumber: { type: Number, default: null },
-    revealedData: {
-        seed: {
-            type: Buffer,
-            required: true,
-            validate: { validator: seedValidator, message: 'Invalid seed' }
-        },
-        ships: {
-            type: [{ x: Number, y: Number, vertical: Boolean }],
-            required: true,
-            validate: { validator: shipsValidator, message: 'Invalid array of ships' }
-        },
-    },
-    winner: { type: String, enum: ['Bomber', 'Creator'] },
+    isCreatorClaimer: { type: Boolean, default: null },
+    creationTx: { type: String, required: true },
+    bombingTx: { type: String, default: null },
+    finishingTx: { type: String, default: null },
+    claimReason: { type: String, enum: ['Join Timeout', 'Reveal Timeout'], default: null }
+}, schemaOptions);
+
+cachedGameSchema.virtual('revealedData', {
+    ref: 'revealedData',
+    localField: 'gameIndex',
+    foreignField: 'gameIndex',
+    justOne: true
 });
 
 mongoose.model('cachedGame', cachedGameSchema);

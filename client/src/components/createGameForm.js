@@ -46,9 +46,11 @@ const ShipsSection = styled.div`
 `;
 
 const GameCreated = styled.div`
-    ${ centerFlex('column') }
+    ${ centerFlex('column') };
 `;
-const GameCreatedTitle = styled.h1``;
+const GameCreatedTitle = styled.h1`
+    text-align: center;
+`;
 
 export default class CreateGameForm extends Component {
     constructor(props) {

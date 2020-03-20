@@ -4,26 +4,33 @@ const
     mongoose = require('mongoose'),
     config = require('../config/config'),
     CachedGame = mongoose.model('cachedGame'),
-    { calcGameHash } = require('../helpers/hashing');
+    RevealedData = mongoose.model('revealedData'),
+    { calcGameHash } = require('../helpers/hashing'),
+    { FINISHED } = require('../constants/gameStatuses');
 
 revealRouter.post('/', async (req, res) => {
     let { seed, gameIndex, ships } = req.body;
 
-    const game = await CachedGame.findOne({ gameIndex });
+    const game = await CachedGame.findOne({ gameIndex }).populate('revealedData');
 
     if (!game) {
         res.status(404).send({ error: 'Game not found' });
         return;
     }
 
-    if (game.revealedData.ships.length && game.revealedData.seed) {
+    if (game.status === FINISHED) {
+        res.status(400).send({ error: 'This game is finished' });
+        return;
+    }
+
+    if (game.revealedData && game.revealedData.seed) {
         res.status(304).send({ error: 'This game was already revealed' });
         return;
     }
 
-    game.revealedData = { ships, seed };
+    const revealedData = new RevealedData({ gameIndex, ships, seed });
     // Validate basic structure
-    const validationFailed = game.validateSync();
+    const validationFailed = revealedData.validateSync();
     if (validationFailed) {
         const { errors = [] } = validationFailed;
         console.log('Validation errors', errors);
@@ -40,8 +47,7 @@ revealRouter.post('/', async (req, res) => {
 
     // Save revealed game data
     try {
-        // TODO: FineOneAndUpdate (will be actually atomic? Research that)
-        await game.save();
+        await revealedData.save();
         res.status(200).send('OK');
     } catch (e) {
         console.log(e);
@@ -52,12 +58,12 @@ revealRouter.post('/', async (req, res) => {
 revealRouter.get('/:gameIndex', async (req, res) => {
     let { gameIndex } = req.params;
 
-    const { revealedData = false } = await CachedGame
+    const revealedData = await RevealedData
         .findOne({ gameIndex })
-        .select('-_id revealedData')
+        .select('-_id')
         .lean();
 
-    res.json(revealedData);
+    res.json(revealedData || false);
 });
 
 

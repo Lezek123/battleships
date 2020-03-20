@@ -42,7 +42,7 @@ contract GameOfShips {
         uint32 _gameIndex,
         Ship[5] _ships
     );
-    event GameFinished(uint32 _gameIndex);
+    event GameFinished(uint32 _gameIndex, bool _isCreatorClaimer);
     event RevealTimeout(uint32 _gameIndex);
     event JoinTimeout(uint32 _gameIndex);
 
@@ -114,7 +114,7 @@ contract GameOfShips {
         require(game.bomber == address(0), "The game already started.");
         delete games[_gameIndex];
         emit JoinTimeout(_gameIndex);
-        emit GameFinished(_gameIndex);
+        emit GameFinished(_gameIndex, true);
         game.creator.transfer(game.prize);
     }
     
@@ -125,15 +125,14 @@ contract GameOfShips {
         require(getShipsHash(_ships, _seed) == game.creationHash, "Invalid hash provided.");
         uint128 shipsBoard = validateShipsAndCreateBoard(_ships);
         delete games[_gameIndex];
+        bool isBomberWinner = (shipsBoard & game.bombsBoard) == shipsBoard;
         emit ShipsRevealed(_gameIndex, _ships);
-        emit GameFinished(_gameIndex);
-        if ((shipsBoard & game.bombsBoard) == shipsBoard) {
-            // Bomber won
+        emit GameFinished(_gameIndex, !isBomberWinner);
+        if (isBomberWinner) {
             game.bomber.transfer(game.prize);
             game.creator.transfer(game.paidBombsCost);
         }
         else {
-            // Creator won
             game.creator.transfer(game.prize + game.paidBombsCost);
         }
     }
@@ -146,7 +145,7 @@ contract GameOfShips {
         require(block.number >= game.revealTimeoutBlockNumber, "Timeout not reached yet.");
         delete games[_gameIndex];
         emit RevealTimeout(_gameIndex);
-        emit GameFinished(_gameIndex);
+        emit GameFinished(_gameIndex, false);
         game.bomber.transfer(game.prize);
         game.creator.transfer(game.paidBombsCost);
     }

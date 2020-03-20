@@ -3,6 +3,10 @@ const colors = {
     PRIMARY: '#465d8a',
     DANGER: '#ff0077',
     INFO_LIGHT: '#b7e6ea',
+    CREATOR: '#aaddff',
+    BOMBER: '#ffbb99',
+    WIN: '#ffeeaa',
+    LOSE: '#ff7777'
 };
 
 export const colorWithAlpha = (color, alpha) => {

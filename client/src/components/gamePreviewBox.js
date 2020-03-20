@@ -133,6 +133,12 @@ export default class GamePreviewBox extends Component {
                             dataName={'Prize'}
                             dataVal={game.prize}
                             unit={'ETH'} />
+                        { game.status === FINISHED && (
+                            <GameDataRow
+                                icon={<PrizeIcon />}
+                                dataName={'Prize claimed by'}
+                                dataVal={ game.isCreatorClaimer ? 'Creator' : 'Bomber' } />
+                        ) }
                         <GameDataRow
                             icon={<BombCostIcon />}
                             dataName={ 'Bomb cost' }
@@ -150,19 +156,21 @@ export default class GamePreviewBox extends Component {
                                 dataVal={'#'+game.joinTimeoutBlockNumber}
                                 dataInfo={ <BlocksCountdown targetBlock={game.joinTimeoutBlockNumber} /> }/>
                         </>) }
-                        { game.status === IN_PROGRESS && (<>
+                        { game.status !== NEW && (
                             <GameDataRow
                                 icon={<BombCostIcon />}
                                 dataName={'Attack cost paid'}
-                                dataVal={game.paidBombsCost}
+                                dataVal={game.paidBombsCost || 0 }
                                 dataInfo={ Math.round(game.paidBombsCost / game.bombCost) + ' bombs placed'}
                                 unit={'ETH'} />
+                        ) }
+                        { game.status === IN_PROGRESS && (
                             <GameDataRow
                                 icon={<RevealTimeoutIcon />}
                                 dataName={'Reveal timeout block'}
                                 dataVal={'#'+game.revealTimeoutBlockNumber}
                                 dataInfo={ <BlocksCountdown targetBlock={game.revealTimeoutBlockNumber} /> }/>
-                        </>) }
+                        ) }
                     </GameData>
                     { showActions && (
                         <JoinButton theme={ themes.primary } as={ Link } to={ generateGamePath(game.gameIndex) }>

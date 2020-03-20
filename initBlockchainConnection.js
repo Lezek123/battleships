@@ -7,9 +7,10 @@ const
     MainContractAbi = require('./build/contracts/GameOfShips.json'),
     CachedGame = mongoose.model('cachedGame'),
     CachedEvent = mongoose.model('cachedEvent'),
-    { GAME_CREATED, BOMBS_PLACED, SHIPS_REVEALED, GAME_FINISHED } = require('./constants/events'),
+    RevealedData = mongoose.model('revealedData'),
+    { GAME_CREATED, BOMBS_PLACED, SHIPS_REVEALED, GAME_FINISHED, JOIN_TIMEOUT, REVEAL_TIMEOUT } = require('./constants/events'),
     GS = require('./constants/gameStatuses'),
-    { sha256 } = require('./helpers/hashing'),
+    { sha256, calcGameHash } = require('./helpers/hashing'),
     { BNToBoard } = require('./helpers/converters'),
     { SAFE_CONFRIMATION_BLOCKS } = require('./constants/blockchain'),
     { round } = require('./helpers/math');
@@ -29,6 +30,7 @@ function getValuesByEvent(event) {
             status: GS.NEW,
             creatorAddr: _creator,
             creationHash: _creationHash,
+            creationTx: event.transactionHash,
             prize: round(web3.utils.fromWei(new BN(_prize, 16)), 8),
             bombCost: round(web3.utils.fromWei(new BN(_bombCost, 16)), 8),
             joinTimeoutBlocks: (new BN(_joinTimeoutBlocks, 16)).toNumber(),
@@ -41,6 +43,7 @@ function getValuesByEvent(event) {
         const { _bomber, _bombsBoard, _paidBombsCost } = eventData;
         values = {
             status: GS.IN_PROGRESS,
+            bombingTx: event.transactionHash,
             bomberAddr: _bomber,
             bombsBoard: BNToBoard(new BN(_bombsBoard, 16)),
             paidBombsCost: round(web3.utils.fromWei(new BN(_paidBombsCost, 16)), 8),
@@ -51,7 +54,20 @@ function getValuesByEvent(event) {
         values = { 'revealedData.ships': _ships };
     }
     if (eventName === GAME_FINISHED) {
-        values = { status: GS.FINISHED };
+        const { _isCreatorClaimer: isCreatorClaimer } = eventData;
+        values = {
+            status: GS.FINISHED,
+            isCreatorClaimer,
+            finishingTx: event.transactionHash,
+        };
+    }
+
+    if (eventName === JOIN_TIMEOUT) {
+        values = { claimReason: 'Join Timeout' };
+    }
+
+    if (eventName === REVEAL_TIMEOUT) {
+        values = { claimReason: 'Reveal Timeout' };
     }
 
     return values;
@@ -68,12 +84,28 @@ const recreateCachedGame = async (gameIndex) => {
             }
             valuesToSet = {...valuesToSet, ...eventValues };
         }
-        let game = (new CachedGame(valuesToSet)).toObject(); // Get defaults etc.
-        delete game.revealedData;
-        delete game._id;
+        if (valuesToSet.revealedData) {
+            await RevealedData.findOneAndUpdate(
+                { gameIndex },
+                { $set: {...valuesToSet.revealedData} }
+            );
+            delete valuesToSet.revealedData;
+        }
+        let gameUpdateObj = (new CachedGame(valuesToSet)).toObject(); // Get defaults etc.
+        delete gameUpdateObj._id;
+        // Handling the case where game of given index may have different creation hash due to reorg
+        const currentRevealedData = await RevealedData.findOne({ gameIndex });
+        if (gameUpdateObj.creationHash && currentRevealedData) {
+            const { ships, seed } = currentRevealedData;
+            const seedHash = '0x'+calcGameHash(ships, seed).toString('hex');
+            if (seedHash !== valuesToSet.creationHash) {
+                await RevealedData.deleteOne({ gameIndex });
+            }
+        }
+        // Updating/Creating game
         await CachedGame.findOneAndUpdate(
             { gameIndex },
-            { $set: { ...game }, lastEventBlock: events[events.length - 1].blockNumber },
+            { $set: { ...gameUpdateObj }, lastEventBlock: events[events.length - 1].blockNumber },
             { upsert: true }
         );
     } else {

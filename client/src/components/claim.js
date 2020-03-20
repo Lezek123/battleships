@@ -3,6 +3,7 @@ import { BigButton, themes } from './navigation/buttons';
 import styled from 'styled-components';
 import { round } from '../helpers/math';
 import Loader from './loader';
+import TxLink from './txLink';
 
 const ClaimedInfo = styled.div`
     text-align: center;
@@ -40,7 +41,7 @@ export default class Claim extends Component {
             return (
                 <ClaimedInfo>
                     Reward has been claimed!<br/>
-                    Transaction: { claimTx }
+                    Transaction: <TxLink tx={ claimTx } />
                 </ClaimedInfo>
             );
         }

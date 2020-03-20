@@ -17,6 +17,7 @@ app.use(body_parser.urlencoded({ extended: true }));
 mongoose.connect(config.mongoURI);
 require('./models/cachedGame');
 require('./models/cachedEvent');
+require('./models/revealedData');
 
 app.use('/reveal', require('./routes/revealRoutes'));
 app.use('/games', require('./routes/gamesRoutes'));

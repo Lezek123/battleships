@@ -11,7 +11,6 @@ const StyledShipsBoard = styled.div`
     padding: 20px;
     border-radius: 20px;
     background: rgba(0, 0, 0, 0.2);
-    margin-top: 10px;
     ${ centerFlex('column') };
 `;
 
@@ -49,7 +48,7 @@ export default class ShipsBoard extends Component {
             lockedObjects = lockedShips.map(
                 ({ x, y, vertical }) => {
                     const shipType = this.shipTypes[vertical ? 'vertical' : 'horizontal'];
-                    return { x, y, xSize: shipType.objectXSize, ySize: shipType.objectYSize }
+                    return { x, y, xSize: shipType.objectXSize, ySize: shipType.objectYSize, objectImage: shipType.objectImage }
                 }
             );
         }
@@ -75,7 +74,7 @@ export default class ShipsBoard extends Component {
     render() {
         const { shipTypes } = this;
         const { shipType: selectedShipType } = this.state;
-        const { onChange } = this.props;
+        const { onChange, boardsDiff } = this.props;
         const lockedObjects = this.getLockedObjects();
         return (
             <StyledShipsBoard>
@@ -101,7 +100,8 @@ export default class ShipsBoard extends Component {
                     maxObjects={5}
                     lockedObjects={ lockedObjects }
                     onPlacement={ this.handlePlacement }
-                    onChange={ onChange }/>
+                    onChange={ onChange }
+                    boardsDiff={ boardsDiff }/>
             </StyledShipsBoard>
         )
     }

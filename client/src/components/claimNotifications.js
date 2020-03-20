@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import ContractsManager from '../helpers/contracts';
 import GAME_STATUSES from '../constants/gameStatuses';
 import { shipsToBoard } from '../helpers/converters';
-import { compareBoards } from './board';
+import { compareBoards, DIFF_STATES } from './board';
 import styled from 'styled-components';
 import { JoinTimeoutIcon, RevealTimeoutIcon, PrizeIcon } from '../constants/icons';
 import { centerFlex } from '../styles/basic';
@@ -182,7 +182,7 @@ export default class CalimNotifications extends Component {
                 if (revealedData.ships) {
                     const shipsBoard = shipsToBoard(revealedData.ships);
                     const compareRes = compareBoards(shipsBoard, game.bombsBoard);
-                    const isCreatorWinner = compareRes.some(row => row.some(resField => resField === 'a'));
+                    const isCreatorWinner = compareRes.some(row => row.some(resField => resField === DIFF_STATES.board1));
                     if ((game.isUserCreator && isCreatorWinner) || (game.isUserBomber && !isCreatorWinner)) {
                         wonGames.push(game.gameIndex);
                     }
