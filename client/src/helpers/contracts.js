@@ -321,7 +321,7 @@ export default class ContractsManager {
     seedRevealDuty = async () => {
         await this.load();
 
-        console.log('Seed reveal duty...');
+        console.log('Reveal duty...');
 
         const userAddr = await this.getUserAddr();
         const gamesAwaitingReveal = (await axios.get(`/games/awaiting_reveal/${ userAddr }`)).data;

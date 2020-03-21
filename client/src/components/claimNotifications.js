@@ -175,7 +175,9 @@ export default class CalimNotifications extends Component {
             ) {
                 revealTimeoutGames.push(game.gameIndex);
             }
-            else {
+            else if (
+                game.status === GAME_STATUSES.IN_PROGRESS
+            ) {
                 // TODO: Move this logic to some revealHelper? (it's used in 2 places now)
                 const revealedDataRes = await fetch('/reveal/' + game.gameIndex);
                 const revealedData = await revealedDataRes.json();
