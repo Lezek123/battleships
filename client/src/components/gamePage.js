@@ -105,10 +105,15 @@ export default class Game extends Component {
     updateGame = async () => {
         const { index } = this.props;
         const game = (await axios.get(`/games/by_index/${ index }`)).data;
-        const userAddr = await this._contractsManager.getUserAddr();
-        game.isUserCreator = this._contractsManager.compareAddr(userAddr, game.creatorAddr);
-        game.isUserBomber = this._contractsManager.compareAddr(userAddr, game.bomberAddr);
-        this.setState({ game, fetching: false });
+        if (!game) {
+            this.setState({ fetching: false });
+        }
+        else {
+            const userAddr = await this._contractsManager.getUserAddr();
+            game.isUserCreator = this._contractsManager.compareAddr(userAddr, game.creatorAddr);
+            game.isUserBomber = this._contractsManager.compareAddr(userAddr, game.bomberAddr);
+            this.setState({ game, fetching: false });
+        }
     }
 
 
