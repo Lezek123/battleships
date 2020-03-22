@@ -169,7 +169,8 @@ async function initBlockchainConnection() {
     console.log('Starting events subscription...');
     MainContractInstance.allEvents({ fromBlock: Math.max(0, currentBlock - SAFE_CONFRIMATION_BLOCKS) })
         .on('data', handleNewEvent)
-        .on('changed', handleEventRemoval);
+        .on('changed', handleEventRemoval)
+        .on('error', console.error);
 }
 
 module.exports = initBlockchainConnection;
