@@ -18,6 +18,9 @@ const
 const web3 = new Web3();
 web3.setProvider(config.web3Provider);
 
+let MainContractInstance = null; // Set it globally to avoid disposing?
+let MainEventEmitter = null;
+
 function getValuesByEvent(event) {
     let values = {};
 
@@ -156,7 +159,7 @@ async function initBlockchainConnection() {
     console.log('Getting deployed main contract instance...')
     const MainContract = TruffleContract(MainContractAbi);
     MainContract.setProvider(config.web3Provider);
-    const MainContractInstance = await MainContract.deployed();
+    MainContractInstance = await MainContract.deployed();
 
     console.log('Getting past events...');
     const currentBlock = await web3.eth.getBlockNumber();
@@ -167,7 +170,7 @@ async function initBlockchainConnection() {
         await handleNewEvent(event);
     }
     console.log('Starting events subscription...');
-    MainContractInstance.allEvents({ fromBlock: Math.max(0, currentBlock - SAFE_CONFRIMATION_BLOCKS) })
+    MainEventEmitter = MainContractInstance.allEvents({ fromBlock: Math.max(0, currentBlock - SAFE_CONFRIMATION_BLOCKS) })
         .on('data', handleNewEvent)
         .on('changed', handleEventRemoval)
         .on('error', console.error);
