@@ -101,10 +101,16 @@ const InputUnit = styled.div`
 export default class Input extends Component {
     state = { errors: [] };
 
-    componentDidUpdate = (prevProps) => {
-        if (prevProps.needsReload !== this.props.needsReload && this.props.needsReload) {
-            this.onChange({ target: { name: this.props.name, value: this.props.value }});
-        }
+    componentDidMount() {
+        this.triggerChange();
+    }
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.value !== this.props.value) this.triggerChange();
+    }
+
+    triggerChange() {
+        this.onChange({ target: { name: this.props.name, value: this.props.value }});
     }
 
     getErrors() {
@@ -115,19 +121,21 @@ export default class Input extends Component {
     }
 
     onChange = (e) => {
-        const { onChange: originOnChange, required } = this.props;
+        const { onChange: originOnChange, required, normalizeValue } = this.props;
         let { target: { value } } = e;
+
+        if (normalizeValue) value = normalizeValue(value);
 
         let errors = [];
         if (value === '' && required) errors.push(`This field is required!`);
 
         this.setState({ errors });
 
-        originOnChange(e, value);
+        originOnChange(e, value, errors);
     }
 
     render() {
-        const { type = 'text', name, value, label, unit, min, max, icon } = this.props;
+        const { type = 'text', name, value, label, unit, min, max, icon, children } = this.props;
         const errors = this.getErrors();
 
         return (
@@ -160,6 +168,7 @@ export default class Input extends Component {
                         ) }
                     </InputErrors>
                 ) }
+                { children }
             </StyledInput>
         );
     }

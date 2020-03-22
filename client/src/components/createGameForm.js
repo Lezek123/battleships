@@ -13,6 +13,10 @@ import ContractsManager from '../helpers/contracts';
 import { BigButton, themes } from './navigation/buttons';
 import { generateGamePath } from '../constants/routes';
 import { Link } from 'react-router-dom';
+import { round } from '../helpers/math';
+
+const MIN_BOMBS_PROFITABLE = 26;
+const MAX_BOMBS_PROFITABLE = 100;
 
 const StyledGameFormContainer = styled.div`
     ${ centerFlex('column') }
@@ -66,7 +70,7 @@ export default class CreateGameForm extends Component {
         return {
             data: {
                 initialValue: '0.01',
-                bombCost: '0.00015',
+                bombCost: '0.000125',
                 joinTimeoutBlocks: Math.round(24 * 60 * 60 / AVG_BLOCK_TIME).toString(),
                 revealTimeoutBlocks: Math.round(24 * 60 * 60 / AVG_BLOCK_TIME).toString(),
                 ships: [],
@@ -85,13 +89,31 @@ export default class CreateGameForm extends Component {
 
     onInputChange = (e, modifiedValue = null, errors = []) => {
         const {target} = e;
+        const value = modifiedValue !== null ? modifiedValue : target.value;
         this.setState(
-            ({ data, validity }) => (
-                {
-                    data: { ...data, [target.name]: modifiedValue || target.value },
-                    validity: { ...validity, [target.name]: errors.length === 0 ? true : false }
+            ({ data, validity }) => ({
+                data: { ...data, [target.name]: value },
+                validity: { ...validity, [target.name]: errors.length === 0 ? true : false }
+            }),
+            () => {
+                const { validity, data: { initialValue, bombCost } } = this.state;
+                // Auto bomb-cost suggesting
+                if (target.name === 'bombCost' && validity.initialValue && validity.bombCost) {
+                    let bombCostRatio = parseFloat(initialValue) / parseFloat(bombCost);
+                    if (bombCostRatio >= MIN_BOMBS_PROFITABLE && bombCostRatio <= MAX_BOMBS_PROFITABLE) {
+                        this.lastValidBombCostRatio = bombCostRatio;
+                    }
                 }
-            )
+                if (target.name === 'initialValue' && validity.initialValue) {
+                    let bombCostRatio = this.lastValidBombCostRatio || 80;
+                    const optimalBombCost = round(parseFloat(value) / bombCostRatio, 8);
+                    this.setState(
+                        ({ data }) => ({
+                            data: { ...data, bombCost: optimalBombCost.toString() },
+                        })
+                    );
+                }
+            }
         );
     }
 
@@ -154,8 +176,9 @@ export default class CreateGameForm extends Component {
                                     value={ data.initialValue }
                                     onChange={ this.onInputChange }
                                     unit={ 'ETH' }
-                                    min={ 0.00001 }
+                                    min={ 0.0001 }
                                     max={ 1 }
+                                    withSlider={ true }
                                     required={ true }
                                     icon={ <PrizeIcon /> }
                                     />
@@ -167,8 +190,9 @@ export default class CreateGameForm extends Component {
                                     value={ data.bombCost }
                                     onChange={ this.onInputChange }
                                     unit={ 'ETH' }
-                                    min={ validity.initialValue ? data.initialValue / 100 : 0.00001 }
-                                    max={ validity.initialValue ? data.initialValue / 26 : 1 }
+                                    min={ validity.initialValue ? round(data.initialValue / MAX_BOMBS_PROFITABLE, 8, Math.ceil) : 0.000001 }
+                                    max={ validity.initialValue ? round(data.initialValue / MIN_BOMBS_PROFITABLE, 8, Math.floor) : 1 }
+                                    withSlider={ true }
                                     required={ true }
                                     icon={ <BombCostIcon /> }
                                     />

@@ -59,10 +59,10 @@ contract GameOfShips {
         require(_revealTimeoutBlocks <= 43200, "Maximum reveal timeout is 43200 blocks"); // ~7 days (assuming 14 sec / block)
         require(_joinTimeoutBlocks >= 10, "Minimum join timeout is 10 blocks"); // ~2m 20 sec (assuming 14 sec / block)
         require(_joinTimeoutBlocks <= 43200, "Maximum join timeout is 43200 blocks"); // ~7 days (assuming 14 sec / block)
-        require(msg.value >= 0.00001 ether, "Minimum prize is 0.00001 ETH");
+        require(msg.value >= 0.0001 ether, "Minimum prize is 0.00001 ETH");
         require(msg.value <= 1 ether, "Maximum prize is 1 ETH");
         require(_bombCost >= msg.value / 100, "Bomb cost must be >= 1/100 of prize");
-        require(_bombCost <= msg.value / 25, "Bomb cost must be <= 1/25 of prize");
+        require(_bombCost <= msg.value / 26, "Bomb cost must be <= 1/26 of prize");
         // Create new ref
         Game storage game = games[++lastGameIndex];
         // Populate only necessary (on creation) fields

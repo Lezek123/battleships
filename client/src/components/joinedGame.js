@@ -113,7 +113,7 @@ export default class JoinedGame extends Component {
                                         </PlacedBombsSummary>
                                         { !this.isAttackValid() && <FieldInfo>You have to place at least 25 bombs</FieldInfo> }
                                     </FormField>
-                                    <Submit text="Attack" disabled={ !this.isAttackValid() } />
+                                    <Submit text="Attack" disabled={ !this.isAttackValid() || attacking } />
                                 </AttackForm>
                             </>)
                         }
