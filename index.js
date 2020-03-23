@@ -11,6 +11,8 @@ const
 	body_parser	= require('body-parser'),
 	path = require('path');
 
+const CACHE_GENERATOR_INTERVAL_TIME = 60 * 60 * 1000;
+
 app.use(expressSession({secret: config.sessionSecret, resave: false, saveUninitialized: false }));
 app.use(body_parser.json());
 app.use(body_parser.urlencoded({ extended: true }));
@@ -23,9 +25,10 @@ require('./models/revealedData');
 app.use('/reveal', require('./routes/revealRoutes'));
 app.use('/games', require('./routes/gamesRoutes'));
 
-const initBlockchainConnection = require('./initBlockchainConnection');
+const { restartCacheGenerator } = require('./cacheGenerator');
 
-initBlockchainConnection().then(() => {
+restartCacheGenerator().then(() => {
+	setInterval(restartCacheGenerator, CACHE_GENERATOR_INTERVAL_TIME);
 	if (in_production) {
 		app.use(express.static('client/build'));
 		app.get('*', (req, res) => {

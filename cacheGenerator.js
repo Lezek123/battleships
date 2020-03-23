@@ -18,10 +18,13 @@ const
 const web3 = new Web3();
 web3.setProvider(config.web3Provider);
 
-let MainContractInstance = null; // Set it globally to avoid disposing?
-let MainEventEmitter = null;
+let MainSubscription = null;
 
-function getValuesByEvent(event) {
+const getEventIdentifier = (event) => {
+    return sha256(event.blockHash + event.transactionHash + event.logIndex).toString('hex');
+}
+
+const getValuesByEvent = (event) => {
     let values = {};
 
     const { eventName, dataJSON } = event;
@@ -116,19 +119,12 @@ const recreateCachedGame = async (gameIndex) => {
     }
 }
 
-const handleNewEvent = async (event) => {
+const createEventObject = (event) => {
     const { event: eventName, blockHash, transactionHash, transactionIndex, logIndex, blockNumber, args: data } = event;
-    const uniqueIdentifier = sha256(blockHash + transactionHash + logIndex).toString('hex');
     const gameIndex = data._gameIndex.toNumber();
-    console.log(`Handling event ${ eventName } for game #${ gameIndex }`);
-    // Skip if we already have event with same identifier in db
-    if (await CachedEvent.findOne({ uniqueIdentifier }).select('_id').lean()) {
-        console.log('Event already handled, skipping...');
-        return;
-    }
-    let cachedEvent = new CachedEvent({
+    return {
         eventName,
-        uniqueIdentifier,
+        uniqueIdentifier: getEventIdentifier(event),
         gameIndex,
         blockHash,
         transactionHash,
@@ -136,7 +132,20 @@ const handleNewEvent = async (event) => {
         logIndex,
         blockNumber,
         dataJSON: JSON.stringify(data)
-    });
+    };
+}
+
+const handleNewEvent = async (event) => {
+    const { event: eventName } = event;
+    const uniqueIdentifier = getEventIdentifier(event);
+    const gameIndex = event.args._gameIndex.toNumber();
+    console.log(`Handling event ${ eventName } for game #${ gameIndex }`);
+    // Skip if we already have event with same identifier in db
+    if (await CachedEvent.findOne({ uniqueIdentifier }).select('_id').lean()) {
+        console.log('Event already handled, skipping...');
+        return;
+    }
+    let cachedEvent = new CachedEvent(createEventObject(event));
     await cachedEvent.save();
     await recreateCachedGame(gameIndex);
 };
@@ -149,31 +158,50 @@ const handleEventRemoval = async (event) => {
     await recreateCachedGame(event.args._gameIndex);
 };
 
-async function initBlockchainConnection() {
-    console.log('Initializing connection between server and the blockchain...');
+const refreshCache = async (events) => {
+    let allEventsIds = [], allGamesIndexes = [];
+    for (let event of events) {
+        handleNewEvent(event);
+        const eventIdentifier = getEventIdentifier(event);
+        const gameIndex = event.args._gameIndex.toNumber();
+        allEventsIds.push(eventIdentifier);
+        if (!allGamesIndexes.includes(gameIndex)) {
+            allGamesIndexes.push(gameIndex);
+        }
+    }
+    await CachedEvent.deleteMany({ uniqueIdentifier: { $nin: allEventsIds } });
+    await CachedGame.deleteMany({ gameIndex: { $nin: allGamesIndexes } });
+    for (let gameIndex of allGamesIndexes) await recreateCachedGame(gameIndex);
+}
 
-    console.log('Removing old cached data...');
-    await CachedEvent.deleteMany({});
-    await CachedGame.deleteMany({});
+async function restartCacheGenerator() {
+    console.log('CACHE RESTART TRIGGERED');
+
+    if (MainSubscription) {
+        console.log('Removing old listeners...');
+        MainSubscription.removeAllListeners();
+    }
 
     console.log('Getting deployed main contract instance...')
     const MainContract = TruffleContract(MainContractAbi);
     MainContract.setProvider(config.web3Provider);
-    MainContractInstance = await MainContract.deployed();
+    const MainContractInstance = await MainContract.deployed();
 
     console.log('Getting past events...');
-    const currentBlock = await web3.eth.getBlockNumber();
+    let currentBlock = await web3.eth.getBlockNumber();
     const events = await MainContractInstance.getPastEvents('allEvents', { fromBlock: 0 });
+
     console.log('Current block:', currentBlock);
     console.log('Past events found:', events.length);
-    for (let event of events) {
-        await handleNewEvent(event);
-    }
-    console.log('Starting events subscription...');
-    MainEventEmitter = MainContractInstance.allEvents({ fromBlock: Math.max(0, currentBlock - SAFE_CONFRIMATION_BLOCKS) })
+    console.log('Refreshing cache...');
+    await refreshCache(events);
+
+    console.log('Starting/restarting events subscription...');
+    currentBlock = await web3.eth.getBlockNumber();
+    MainSubscription = MainContractInstance.allEvents({ fromBlock: Math.max(0, currentBlock - SAFE_CONFRIMATION_BLOCKS) })
         .on('data', handleNewEvent)
         .on('changed', handleEventRemoval)
         .on('error', console.error);
 }
 
-module.exports = initBlockchainConnection;
+module.exports = { restartCacheGenerator };
