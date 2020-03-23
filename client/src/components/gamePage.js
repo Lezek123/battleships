@@ -78,6 +78,20 @@ export const BoardLoader = styled.div`
     ${centerFlex('column')};
 `;
 
+const GameNotFound = styled.div`
+    ${ centerFlex('column') }
+`;
+const GameNotFoundTitle = styled.h1`
+    text-align: center;
+    margin: 0;
+    margin-bottom: 10px;
+`;
+const GameNotFoundSub = styled.h2`
+    text-align: center;
+    font-weight: 600;
+    margin: 0;
+`;
+
 const UPDATE_INTERVAL_TIME = 5000;
 
 export default class Game extends Component {
@@ -122,7 +136,12 @@ export default class Game extends Component {
         const { game, fetching } = this.state;
         
         if (fetching) return <Loader text="Fetching game data..." />;
-        if (!game) return <h1>Game not found!</h1>; // TODO: 404 component
+        if (!game) return (
+            <GameNotFound>
+                <GameNotFoundTitle>Game not found!</GameNotFoundTitle>
+                <GameNotFoundSub>If the game was just created, try waiting a little bit and then refresh the page.</GameNotFoundSub>
+            </GameNotFound>
+        );
         
         return (
             <GamePage>

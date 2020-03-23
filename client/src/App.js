@@ -69,6 +69,7 @@ const MetamaskScreenInfo = styled.div`
 	color: ${ color.INFO_LIGHT };
 	margin-bottom: 20px;
 	font-weight: 600;
+	text-align: center;
 `;
 
 class App extends Component {
