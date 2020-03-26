@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { BigButton, themes } from './navigation/buttons';
 import { centerFlex } from '../styles/basic';
 import { generateGamePath } from '../constants/routes';
-import { BombCostIcon, PrizeIcon, JoinTimeoutIcon, RevealTimeoutIcon } from '../constants/icons';
+import { BombCostIcon, PrizeIcon, JoinTimeoutIcon, RevealTimeoutIcon, SunkenShipIcon } from '../constants/icons';
 import { breakpoints as bp, breakpointHit } from '../constants/breakpoints';
 import BlocksCountdown from './blocksCountdown';
 import GAME_STATUSES from '../constants/gameStatuses';
@@ -91,6 +91,7 @@ const DataVal = styled.div`
 `;
 const DataInfo = styled.div`
     font-size: 12px;
+    color: #ccc;
 `;
 const JoinButton = styled(BigButton)`
     margin-top: 15px;
@@ -130,15 +131,9 @@ export default class GamePreviewBox extends Component {
                     <GameData>
                         <GameDataRow
                             icon={<PrizeIcon />}
-                            dataName={'Prize'}
+                            dataName={'Total prize'}
                             dataVal={game.prize}
                             unit={'ETH'} />
-                        { game.status === FINISHED && (
-                            <GameDataRow
-                                icon={<PrizeIcon />}
-                                dataName={'Prize claimed by'}
-                                dataVal={ game.isCreatorClaimer ? 'Creator' : 'Bomber' } />
-                        ) }
                         <GameDataRow
                             icon={<BombCostIcon />}
                             dataName={ 'Bomb cost' }
@@ -170,6 +165,12 @@ export default class GamePreviewBox extends Component {
                                 dataName={'Reveal timeout block'}
                                 dataVal={'#'+game.revealTimeoutBlockNumber}
                                 dataInfo={ <BlocksCountdown targetBlock={game.revealTimeoutBlockNumber} /> }/>
+                        ) }
+                        { game.status === FINISHED && (
+                            <GameDataRow
+                                icon={<SunkenShipIcon />}
+                                dataName={'Ships sunken'}
+                                dataVal={ game.sunkenShipsCount === null ? 'Unknown' : game.sunkenShipsCount } />
                         ) }
                     </GameData>
                     { showActions && (

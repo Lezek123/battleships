@@ -28,7 +28,7 @@ export default class Claim extends Component {
         const { amount } = this.props;
         const { claimTx, claiming } = this.state;
         if (claiming) {
-            return <Loader text={ `Claiming ${ round(amount, 8) } ETH...` }/>;
+            return <Loader text={ `Claiming ${ round(amount, 8) } ETH...` } size={50}/>;
         }
         else if (!claimTx) {
             return (
@@ -40,7 +40,7 @@ export default class Claim extends Component {
         else {
             return (
                 <ClaimedInfo>
-                    Reward has been claimed!<br/>
+                    ETH has been claimed!<br/>
                     Transaction: <TxLink tx={ claimTx } />
                 </ClaimedInfo>
             );

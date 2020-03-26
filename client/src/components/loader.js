@@ -54,11 +54,12 @@ const StyledBoxLoader = styled.div`
 const BoxLoaderBoxes = styled.div`
     display: flex;
     flex-wrap: wrap;
-    width: 90px;
+    width: ${ props => `${props.loaderSize}px` };
+    height: ${ props => `${props.loaderSize}px` };
 `;
 const BoxLoaderBox = styled.div`
-    width: 28px;
-    height: 28px;
+    width: calc(33.333% - 2px);
+    height: calc(33.333% - 2px);
     margin: 1px;
     border-radius: 3px;
     background: ${ props => props.type === 'active' ? colors.INFO_LIGHT : 'transparent' };
@@ -103,10 +104,10 @@ class BoxLoader extends Component {
         this.setState({ boxes: newBoxes });
     }
     render() {
-        const { text = 'Loading...' } = this.props;
+        const { text = 'Loading...', size = 90 } = this.props;
         return (
             <StyledBoxLoader>
-                <BoxLoaderBoxes>
+                <BoxLoaderBoxes loaderSize={ size }>
                     { this.state.boxes.map((type, key) => <BoxLoaderBox type={type} key={key} />) }
                 </BoxLoaderBoxes>
                 <BoxLoaderText>{ text }</BoxLoaderText>

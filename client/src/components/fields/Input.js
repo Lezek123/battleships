@@ -64,12 +64,12 @@ const errorsFadeIn = keyframes`
 
 const InputErrors = styled.div`
     font-size: 14px;
-    background: ${ colorWithAlpha(color.DANGER, 0.7) };
+    background: ${ colorWithAlpha(color.DANGER, 0.4) };
     text-align: center;
     width: 100%;
     padding: 5px 20px;
     border-radius: 20px;
-    margin-top: 2px;
+    margin-top: 10px;
     animation: ${errorsFadeIn} 0.5s;
 `;
 

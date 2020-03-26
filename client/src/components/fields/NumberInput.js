@@ -7,7 +7,7 @@ import { round } from '../../helpers/math';
 const NumberSlider = styled.div`
     height: 28px;
     width: 100%;
-    margin: 10px 0;
+    margin-top: 10px;
     background: rgba(255, 255, 255, 0.8);
     border-radius: 20px;
     position: relative;
@@ -135,7 +135,7 @@ export default class NumberInput extends Component {
 
     render() {
         const { errors: stateErrors, normalizedValue, sliderClicked } = this.state;
-        const { errors: passedErrors = [], withSlider = false, min, max } = this.props;
+        const { errors: passedErrors = [], withSlider = false, min, max, children } = this.props;
 
         let errors = passedErrors.concat(stateErrors);
 
@@ -163,6 +163,7 @@ export default class NumberInput extends Component {
                             ref={ ref => this.sliderPointerRef = ref }/>
                     </NumberSlider>
                 ) }
+                { children }
             </Input>
         </>);
     }

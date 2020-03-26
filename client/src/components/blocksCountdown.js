@@ -6,7 +6,7 @@ import { blocksToRoundedInterval } from '../helpers/converters';
 const countdownThemes = {
     danger: { color: '#ff0000' },
     warning: { color: '#ff9900' },
-    default: { color: '#fff' },
+    default: { color: 'inherit' },
 }
 const StyledBlocksCountdown = styled.span`
     color: ${ props => props.theme.color };

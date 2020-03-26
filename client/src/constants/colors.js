@@ -1,8 +1,9 @@
-const colors = {
+export const colors = {
     MAIN_BG: '#282c34',
     PRIMARY: '#465d8a',
     DANGER: '#ff0077',
     INFO_LIGHT: '#b7e6ea',
+    INFO_DARK: '#225588',
     CREATOR: '#aaddff',
     BOMBER: '#ffbb99',
     WIN: '#ffeeaa',

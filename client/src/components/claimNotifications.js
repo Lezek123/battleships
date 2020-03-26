@@ -10,6 +10,9 @@ import colors from '../constants/colors';
 import { Link } from 'react-router-dom';
 import { generateGamePath } from '../constants/routes';
 import { breakpointHit, breakpointNotHit, breakpoints as bp } from '../constants/breakpoints';
+import { round } from '../helpers/math';
+import { SmallButton, themes } from '../components/navigation/buttons';
+import Loading from './loader';
 
 const StyledClaimNotifications = styled.div`
     @media ${ breakpointNotHit(bp.SMALL_LAPTOP) } {
@@ -21,7 +24,7 @@ const StyledClaimNotifications = styled.div`
     }
     @media ${ breakpointHit(bp.SMALL_LAPTOP) } {
         width: 100%;
-        background: rgba(255, 255, 255, 0.6);
+        background: rgba(0,0,0,0.3);
     }
 `;
 const ClaimNotificationsTitle = styled.div`
@@ -31,12 +34,13 @@ const ClaimNotificationsTitle = styled.div`
     font-size: 18px;
     text-align: center;
     @media ${ breakpointHit(bp.SMALL_LAPTOP) } {
-        background: rgba(0,0,0,0.4);
+        background: rgba(0,0,0,0.6);
     }
 `;
 const ClaimNotificationBoxes = styled.div`
     width: 100%;
     display: flex;
+    margin: 10px 0;
     @media ${ breakpointNotHit(bp.SMALL_LAPTOP) } {
         flex-direction: column;
         align-items: center;
@@ -48,7 +52,7 @@ const ClaimNotificationBoxes = styled.div`
     }
 `;
 const NotificationsBoxContainer = styled.div`
-    margin: 10px 0;
+    margin: 15px 0;
     ${ centerFlex('column') }
     width: 230px;
     @media ${ breakpointHit(bp.SMALL_LAPTOP) } {
@@ -103,6 +107,16 @@ const GameLink = styled(Link)`
     color: #fff;
     margin: 10px 20px;
 `;
+const Balance = styled.div`
+    margin-top: 10px;
+    margin-bottom: 20px;
+    font-size: 20px;
+    text-align: center;
+    font-weight: 600;
+`;
+const BalanceAmount = styled.div`
+    margin-bottom: 10px;
+`;
 
 class ClaimNotificationsBox extends Component {
     state = { open: false };
@@ -138,7 +152,9 @@ export default class CalimNotifications extends Component {
         joinTimeoutGames: [],
         revealTimeoutGames: [],
         wonGames: [],
-        openedBox: null
+        userBalance: null,
+        openedBox: null,
+        withdrawing: false,
     };
 
     componentWillMount() {
@@ -160,6 +176,7 @@ export default class CalimNotifications extends Component {
         const web3 = await this._contractsManager.getWeb3();
         const usersGames = await this._contractsManager.fetchUsersGames('active', 'all');
         const currentBlockNumber = await web3.eth.getBlockNumber();
+        const userBalance = await this._contractsManager.getUserContractBalance();
         for (let game of usersGames) {
             if (
                 game.isUserCreator
@@ -191,7 +208,7 @@ export default class CalimNotifications extends Component {
                 }
             }
         }
-        this.setState({ joinTimeoutGames, revealTimeoutGames, wonGames });
+        this.setState({ joinTimeoutGames, revealTimeoutGames, wonGames, userBalance });
     }
 
     renderClaimNotificationBox = (number, icon, games) => {
@@ -206,10 +223,28 @@ export default class CalimNotifications extends Component {
         );
     }
 
+    claimWithdrawal = () => {
+        this.setState({ withdrawing: true }, async () => {
+            try {
+                await this._contractsManager.claimUserBalance();
+            } catch(e) {
+                console.error(e);
+            }
+            this.setState({ withdrawing: false });
+        });
+    }
+
     render() {
-        const { joinTimeoutGames, revealTimeoutGames, wonGames } = this.state;
+        const { joinTimeoutGames, revealTimeoutGames, wonGames, userBalance, withdrawing } = this.state;
         return (
             <StyledClaimNotifications>
+                <ClaimNotificationsTitle>Balance</ClaimNotificationsTitle>
+                <Balance>
+                    <BalanceAmount>{ userBalance !== null ? round(userBalance, 8) : '...' } ETH</BalanceAmount>
+                    { withdrawing ?
+                        <Loading text={'Withdrawing balance...'} size={50}/>
+                        : ( userBalance > 0 && <SmallButton theme={ themes.primary } onClick={ this.claimWithdrawal }>Withdraw</SmallButton>) }
+                </Balance>
                 <ClaimNotificationsTitle>Available claims</ClaimNotificationsTitle>
                 <ClaimNotificationBoxes>
                     { this.renderClaimNotificationBox(1, <PrizeIcon />, wonGames) }

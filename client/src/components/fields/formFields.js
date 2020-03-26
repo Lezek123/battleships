@@ -2,7 +2,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { MdInfo as InfoIcon } from 'react-icons/md';
-import color from '../../constants/colors';
+import { colors as color, colorWithAlpha } from '../../constants/colors';
 import { centerFlex } from '../../styles/basic';
 
 export const FormField = styled.div`
@@ -15,10 +15,15 @@ export const BigLabel = styled.label`
 `;
 
 const StyledFieldInfo = styled.div`
-    margin-bottom: 15px;
+    width: 100%;
     ${ centerFlex('row') };
+    display: inline-flex;
     color: ${ color.INFO_LIGHT };
+    background: ${ colorWithAlpha(color.INFO_DARK, 0.4) };
     font-size: 14px;
+    padding: 5px 10px;
+    border-radius: 12px;
+    margin-top: 10px;
 `;
 const FieldInfoIcon = styled(InfoIcon)`
     font-size: 22px;

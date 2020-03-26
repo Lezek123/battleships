@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import styled from 'styled-components';
 import { centerFlex } from '../styles/basic';
-import { BombCostIcon, PrizeIcon, JoinTimeoutIcon, RevealTimeoutIcon, TransactionIcon } from '../constants/icons';
+import { BombCostIcon, PrizeIcon, JoinTimeoutIcon, RevealTimeoutIcon, TransactionIcon, EthereumIcon, ClaimIcon, SunkenShipIcon } from '../constants/icons';
 import GAME_STATUSES from '../constants/gameStatuses';
 import TxLink from '../components/txLink';
 
@@ -55,18 +55,30 @@ export default class GameDataBox extends Component {
             <StyledGameDataBox>
                 <GameDataRow
                     icon={<PrizeIcon />}
-                    dataName={'Prize'}
+                    dataName={'Total prize'}
                     dataVal={game.prize}
                     unit={'ETH'} />
+                { game.sunkenShipsCount !== null && (
+                    <GameDataRow
+                        icon={<SunkenShipIcon />}
+                        dataName={'Sunken ships'}
+                        dataVal={ game.sunkenShipsCount } />
+                ) }
                 { game.status === FINISHED && (<>
                     <GameDataRow
-                        icon={<PrizeIcon />}
-                        dataName={'Prize claimed by'}
-                        dataVal={ game.isCreatorClaimer ? 'Creator' : 'Bomber' } />
+                        icon={<EthereumIcon />}
+                        dataName={'Creator claim amount'}
+                        dataVal={ game.creatorClaimAmount }
+                        unit={'ETH'}/>
                     <GameDataRow
-                        icon={<PrizeIcon />}
+                        icon={<EthereumIcon />}
+                        dataName={'Bomber claim amount'}
+                        dataVal={ game.bomberClaimAmount }
+                        unit={'ETH'}/>
+                    <GameDataRow
+                        icon={<ClaimIcon />}
                         dataName={'Claim reason'}
-                        dataVal={ game.claimReason ? game.claimReason : 'Standard win' } />
+                        dataVal={ game.claimReason ? game.claimReason : 'Standard finish' } />
                 </>)}
                 <GameDataRow
                     icon={<BombCostIcon />}

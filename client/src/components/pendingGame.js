@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { compareBoards, DIFF_STATES } from './board';
 import ShipsBoard from './shipsBoard';
 import BombsBoard from './bombsBoard';
 import Loader from './loader';
-import { PrizeIcon, RevealTimeoutIcon, LoseIcon } from '../constants/icons';
+import { RevealTimeoutIcon, SunkenShipIcon, ShipIcon } from '../constants/icons';
 import TimeoutClaim from './timeoutClaim';
 import Claim from './claim';
 import ContractsManager from '../helpers/contracts';
@@ -12,24 +12,56 @@ import colors from '../constants/colors';
 import GameDataBox from './gameDataBox';
 import { StyledGame, GameMain, GameData, LiveView, LiveViewTitle, BoardContainer, BoardLoader } from './gamePage';
 import { centerFlex } from '../styles/basic';
+import { round } from '../helpers/math';
+import { breakpoints as bp, breakpointHit } from '../constants/breakpoints';
 
-const WinnerInfoSection = styled.div`
+const ResultInfoSection = styled.div`
     margin: 15px 0;
     ${ centerFlex('column') }
+    width: 100%;
 `;
-const WinnerInfo = styled.div`
+const ShipsResult = styled.div`
     margin-bottom: 10px;
     font-size: 26px;
     font-weight: 600;
     display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    border-radius: 20px;
+    @media ${ breakpointHit(bp.TABLET )} {
+        flex-direction: column;
+    }
+`;
+const ShipsScore = styled.div`
+    color: ${ props => props.creator ? colors.CREATOR : colors.BOMBER };
+    display: flex;
     align-items: center;
-    color: ${ props => props.color ? props.color : 'inherit' };
+    justify-content: space-evenly;
+    width: 280px !important;
+    padding: 20px;
+    margin: 10px 1px;
+    ${ props => props.creator && css`border-top-left-radius: 20px; border-bottom-left-radius: 20px;` }
+    ${ props => !props.creator && css`border-top-right-radius: 20px; border-bottom-right-radius: 20px;` }
+    background: rgba(0,0,0,0.2);
+    @media ${ breakpointHit(bp.TABLET )} {
+        border-radius: 20px;
+        justify-content: flex-start;
+    }
 `;
-const WinnerIcon = styled.div`
+const ShipsScoreIcon = styled.div`
     font-size: 34px;
-    margin-right: 8px;
+    background: ${ props => props.creator ? colors.CREATOR : colors.BOMBER };
+    color: #222;
+    ${ centerFlex('column') };
+    width: 50px;
+    height: 50px;
+    border-radius: 100%;
+    @media ${ breakpointHit(bp.TABLET )} {
+        order: -1;
+        margin-right: 15px;
+    }
 `;
-const WinnerClaim = styled.div`
+const ResultClaim = styled.div`
 `;
 
 export default class PendingGame extends Component {
@@ -38,8 +70,7 @@ export default class PendingGame extends Component {
         revealedSeed: null,
         shipsBoard: null,
         boardsDiff: null,
-        winner: null,
-        isUserWinner: null,
+        sunkenShips: null,
     };
 
     constructor(props) {
@@ -49,14 +80,19 @@ export default class PendingGame extends Component {
 
     determineWinner = async () => {
         const { shipsBoard } = this.state;
-        const { game: { bombsBoard, isUserCreator, isUserBomber } } = this.props;
+        const { game: { bombsBoard, revealedData: { ships } } } = this.props;
 
         if (shipsBoard) {
             const boardsDiff = compareBoards(shipsBoard, bombsBoard);
-            const isCreatorWinner = boardsDiff.some(row => row.some(resField => resField === DIFF_STATES.board1));
+            let sunkenShips = 0;
+            for (let ship of ships) {
+                let hits = 0;
+                if (ship.vertical) for(let y = ship.y; y <= ship.y + 4; ++y) hits += bombsBoard[y][ship.x];
+                else for(let x = ship.x; x <= ship.x + 4; ++x) hits += bombsBoard[ship.y][x];
+                if (hits === 5) ++sunkenShips;
+            }
 
-            const isUserWinner = (isCreatorWinner && isUserCreator) || (!isCreatorWinner && isUserBomber)
-            this.setState({ boardsDiff, isUserWinner, winner: isCreatorWinner ? 'Creator' : 'Bomber' })
+            this.setState({ boardsDiff, sunkenShips })
         }
     }
 
@@ -66,7 +102,7 @@ export default class PendingGame extends Component {
         }
     }
 
-    claimWin = async () => {
+    finishClaim = async () => {
         const { game: { gameIndex, revealedData: { ships, seed } } } = this.props;
         return await this._contractManager.finishGame(
             gameIndex,
@@ -76,34 +112,34 @@ export default class PendingGame extends Component {
     }
 
     render() {
-        const { winner, isUserWinner, boardsDiff } = this.state;
+        const { boardsDiff, sunkenShips } = this.state;
         const { game: { gameIndex, bombsBoard, prize, paidBombsCost, revealTimeoutBlockNumber, isUserCreator, isUserBomber, revealedData } } = this.props;
         return (
             <StyledGame>
-                {/* After winner is known */}
-                { (winner !== null) && (
-                    <WinnerInfoSection>
-                        { isUserWinner && (
-                            <WinnerInfo color={ colors.WIN }>
-                                <WinnerIcon><PrizeIcon /></WinnerIcon> You've WON!
-                            </WinnerInfo>
+                {/* After revealed ships are known */}
+                { (boardsDiff !== null) && (
+                    <ResultInfoSection>
+                        <ShipsResult>
+                            <ShipsScore creator={true}>
+                                <ShipsScoreIcon creator={true}><ShipIcon/></ShipsScoreIcon>
+                                { 5 - sunkenShips } preserved
+                            </ShipsScore>
+                            <ShipsScore>
+                                { sunkenShips } sunken
+                                <ShipsScoreIcon><SunkenShipIcon/></ShipsScoreIcon>
+                            </ShipsScore>
+                        </ShipsResult>
+                        { (isUserBomber && sunkenShips > 0) && (
+                            <ResultClaim>
+                                <Claim amount={ round(prize * sunkenShips / 5, 8) } claimMethod={ this.finishClaim }/>
+                            </ResultClaim>
                         ) }
-                        { (!isUserWinner && (isUserCreator || isUserBomber)) && (
-                            <WinnerInfo color={ colors.LOSE }>
-                                <WinnerIcon><LoseIcon /></WinnerIcon> You've LOST!
-                            </WinnerInfo>
+                        { isUserCreator && (
+                            <ResultClaim>
+                                <Claim amount={ round((prize + paidBombsCost) - (prize * sunkenShips / 5), 8) } claimMethod={ this.finishClaim }/>
+                            </ResultClaim>
                         ) }
-                        { (!isUserCreator && !isUserBomber) && (
-                            <WinnerInfo>
-                                <WinnerIcon><PrizeIcon /></WinnerIcon> Winner: { winner }
-                            </WinnerInfo>
-                        ) }
-                        { isUserWinner && (
-                            <WinnerClaim>
-                                <Claim amount={ isUserCreator ? (paidBombsCost + prize) : prize } claimMethod={ this.claimWin }/>
-                            </WinnerClaim>
-                        ) }
-                    </WinnerInfoSection>
+                    </ResultInfoSection>
                 ) }
                 <GameMain>
                     <GameData>

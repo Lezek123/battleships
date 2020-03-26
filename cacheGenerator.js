@@ -20,6 +20,8 @@ web3.setProvider(config.web3Provider);
 
 let MainSubscription = null;
 
+const isGameEvent = (event) => (event.args._gameIndex ? true : false);
+
 const getEventIdentifier = (event) => {
     return sha256(event.blockHash + event.transactionHash + event.logIndex).toString('hex');
 }
@@ -56,14 +58,15 @@ const getValuesByEvent = (event) => {
         }
     }
     if (eventName === SHIPS_REVEALED) {
-        const { _ships } = eventData;
-        values = { 'revealedData.ships': _ships };
+        const { _ships, _sunkenShipsCount } = eventData;
+        values = { 'revealedData.ships': _ships, sunkenShipsCount: _sunkenShipsCount };
     }
     if (eventName === GAME_FINISHED) {
-        const { _isCreatorClaimer: isCreatorClaimer } = eventData;
+        const { _creatorTransferAmount, _bomberTransferAmount } = eventData;
         values = {
             status: GS.FINISHED,
-            isCreatorClaimer,
+            creatorClaimAmount: round(web3.utils.fromWei(_creatorTransferAmount), 8),
+            bomberClaimAmount: round(web3.utils.fromWei(_bomberTransferAmount), 8),
             finishingTx: event.transactionHash,
         };
     }
@@ -136,6 +139,7 @@ const createEventObject = (event) => {
 }
 
 const handleNewEvent = async (event) => {
+    if (!isGameEvent(event)) return;
     const { event: eventName } = event;
     const uniqueIdentifier = getEventIdentifier(event);
     const gameIndex = event.args._gameIndex.toNumber();
@@ -151,25 +155,25 @@ const handleNewEvent = async (event) => {
 };
 
 const handleEventRemoval = async (event) => {
-    if (!event.removed) return; // It should be set according to the doc
-    const { blockHash, transactionHash, logIndex } = event;
-    const eventIdentifier = sha256(blockHash + transactionHash + logIndex);
+    if (!event.removed || !isGameEvent(event)) return; // event.removed should be set according to the doc
+    const eventIdentifier = getEventIdentifier(event);
     await CachedEvent.deleteOne({ eventIdentifier });
     await recreateCachedGame(event.args._gameIndex);
 };
 
 const refreshCache = async (events) => {
-    let allEventsIds = [], allGamesIndexes = [];
+    let allGameEventsIds = [], allGamesIndexes = [];
     for (let event of events) {
+        if (!isGameEvent(event)) continue;
         handleNewEvent(event);
         const eventIdentifier = getEventIdentifier(event);
         const gameIndex = event.args._gameIndex.toNumber();
-        allEventsIds.push(eventIdentifier);
+        allGameEventsIds.push(eventIdentifier);
         if (!allGamesIndexes.includes(gameIndex)) {
             allGamesIndexes.push(gameIndex);
         }
     }
-    await CachedEvent.deleteMany({ uniqueIdentifier: { $nin: allEventsIds } });
+    await CachedEvent.deleteMany({ uniqueIdentifier: { $nin: allGameEventsIds } });
     await CachedGame.deleteMany({ gameIndex: { $nin: allGamesIndexes } });
     for (let gameIndex of allGamesIndexes) await recreateCachedGame(gameIndex);
 }

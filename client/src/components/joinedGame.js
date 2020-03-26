@@ -21,16 +21,18 @@ const AttackForm = styled.form`
 const PlacedBombsSummary = styled.div`
     margin-top: 20px;
     margin-bottom: 10px;
+    width: 100%;
 `;
 const SummaryRow = styled.div`
     display: flex;
-    width: 250px;
+    width: 100%;
     justify-content: space-between;
 `;
 const SummaryName = styled.div`
     font-weight: bold;
 `;
 const SummaryValue = styled.div`
+    text-align: right;
 `;
 
 export default class JoinedGame extends Component {
@@ -107,7 +109,7 @@ export default class JoinedGame extends Component {
                                                 <SummaryValue>{ round(placedBombsCount * bombCost, 8) } ETH</SummaryValue>
                                             </SummaryRow>
                                             <SummaryRow>
-                                                <SummaryName>Winning reward:</SummaryName>
+                                                <SummaryName>Max win:</SummaryName>
                                                 <SummaryValue>{ round(prize - placedBombsCount * bombCost, 8) } ETH</SummaryValue>
                                             </SummaryRow>
                                         </PlacedBombsSummary>

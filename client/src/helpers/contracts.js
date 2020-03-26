@@ -92,6 +92,12 @@ export default class ContractsManager {
         return this._web3.currentProvider.selectedAddress;
     }
 
+    getUserContractBalance = async () => {
+        const userAddr = await this.getUserAddr();
+        const balance = await this._mainContractInstance.getBalance(userAddr);
+        return this._web3.utils.fromWei(balance);
+    }
+
     // If status not provided then fetch all active
     fetchGames = async (status = 'active', page = 1, usersOnly = false) => {
         await this.load();
@@ -314,6 +320,17 @@ export default class ContractsManager {
 
         return await this._mainContractInstance.claimJoinTimeoutReturn(
             gameIndex,
+            { from: playerAddr }
+        );
+    }
+
+    claimUserBalance = async () => {
+        await this.load();
+
+        const playerAddr = await this.getUserAddr();
+
+        return await this._mainContractInstance.claimBalance(
+            playerAddr,
             { from: playerAddr }
         );
     }

@@ -48,9 +48,6 @@ const ShipsSection = styled.div`
     width: 500px;
     flex-shrink: 1;
 `;
-const ShipsFieldInfo = styled.div`
-    margin-top: 10px;
-`;
 
 const GameCreated = styled.div`
     ${ centerFlex('column') };
@@ -171,7 +168,7 @@ export default class CreateGameForm extends Component {
                             <FormSectionTitle>Configuration:</FormSectionTitle>
                             <FormField>
                                 <NumberInput
-                                    label="Winning prize"
+                                    label="Total prize"
                                     name="initialValue"
                                     value={ data.initialValue }
                                     onChange={ this.onInputChange }
@@ -181,7 +178,13 @@ export default class CreateGameForm extends Component {
                                     withSlider={ true }
                                     required={ true }
                                     icon={ <PrizeIcon /> }
-                                    />
+                                >
+                                    { (validity.initialValue) && (
+                                        <FieldInfo>
+                                            Attacker will get <b>{ round(data.initialValue / 5, 8) } ETH</b> for each sunken ship
+                                        </FieldInfo>
+                                    ) }
+                                </NumberInput>
                             </FormField>
                             <FormField>
                                 <NumberInput
@@ -195,12 +198,13 @@ export default class CreateGameForm extends Component {
                                     withSlider={ true }
                                     required={ true }
                                     icon={ <BombCostIcon /> }
-                                    />
+                                    >
                                     { (validity.initialValue && validity.bombCost) && (
                                         <FieldInfo>
-                                            Placing more than <b>{ Math.ceil(data.initialValue / data.bombCost) - 1 } bombs</b> will become unprofitable
+                                            Placing more than <b>{ Math.ceil(data.initialValue / data.bombCost) - 1 } bombs</b> will become unprofitable for the attacker
                                         </FieldInfo>
                                     ) }
+                                </NumberInput>
                             </FormField>
                             <FormField>
                                 <NumberInput
@@ -213,40 +217,41 @@ export default class CreateGameForm extends Component {
                                     max={ 43200 }
                                     required={ true }
                                     icon={ <RevealTimeoutIcon /> }
-                                    />
+                                    >
                                     { (validity.revealTimeoutBlocks) && (
                                         <FieldInfo>
-                                            For { AVG_BLOCK_TIME }s per block it's { blocksToRoundedInterval(data.revealTimeoutBlocks) }
+                                            For { AVG_BLOCK_TIME }s per block it's <b>{ blocksToRoundedInterval(data.revealTimeoutBlocks) }</b>
                                         </FieldInfo>
                                     ) }
+                                </NumberInput>
                             </FormField>
                             <FormField>
                                 <NumberInput
-                                        label="Join timeout"
-                                        name="joinTimeoutBlocks"
-                                        value={ data.joinTimeoutBlocks }
-                                        onChange={ this.onInputChange }
-                                        unit={ 'blocks' }
-                                        min={ 10 }
-                                        max={ 43200 }
-                                        required={ true }
-                                        icon={ <JoinTimeoutIcon /> }
-                                        />
-                                { (validity.joinTimeoutBlocks) && (
-                                    <FieldInfo>
-                                        For { AVG_BLOCK_TIME }s per block it's { blocksToRoundedInterval(data.joinTimeoutBlocks) }
-                                    </FieldInfo>
-                                ) }
+                                    label="Join timeout"
+                                    name="joinTimeoutBlocks"
+                                    value={ data.joinTimeoutBlocks }
+                                    onChange={ this.onInputChange }
+                                    unit={ 'blocks' }
+                                    min={ 10 }
+                                    max={ 43200 }
+                                    required={ true }
+                                    icon={ <JoinTimeoutIcon /> }
+                                    >
+                                    { (validity.joinTimeoutBlocks) && (
+                                        <FieldInfo>
+                                            For { AVG_BLOCK_TIME }s per block it's <b>{ blocksToRoundedInterval(data.joinTimeoutBlocks) }</b>
+                                        </FieldInfo>
+                                    ) }
+                                </NumberInput>
                             </FormField>
                         </ConfigSection>
                         <ShipsSection>
                             <FormSectionTitle>Ships:</FormSectionTitle>
-                            <ShipsBoard onPlacement={ this.onShipPlacement } />
-                            { data.ships.length < 5 && (
-                                <ShipsFieldInfo>
-                                    <FieldInfo>{ 5 - data.ships.length } { data.ships.length > 1 ? 'ships' : 'ship' } left to place</FieldInfo>
-                                </ShipsFieldInfo>
-                            ) }
+                            <ShipsBoard onPlacement={ this.onShipPlacement }>
+                                { data.ships.length < 5 && (
+                                    <FieldInfo><b>{ 5 - data.ships.length }</b> { (5 - data.ships.length) > 1 ? 'ships' : 'ship' } left to place</FieldInfo>
+                                ) }
+                            </ShipsBoard>
                         </ShipsSection>
                     </GameFormSections>
                     <Submit text="Create game" disabled={ !this.isValid() }/>

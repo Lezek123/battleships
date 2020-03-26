@@ -33,11 +33,15 @@ const cachedGameSchema = new Schema({
     revealTimeoutBlocks: { type: Number, required: true },
     joinTimeoutBlockNumber: { type: Number, required: true },
     revealTimeoutBlockNumber: { type: Number, default: null },
-    isCreatorClaimer: { type: Boolean, default: null },
+    // Finished game data:
+    creatorClaimAmount: { type: Number, default: null },
+    bomberClaimAmount: { type: Number, default: null },
+    sunkenShipsCount: { type: Number, default: null },
+    claimReason: { type: String, enum: ['Join Timeout', 'Reveal Timeout'], default: null },
+    // Transactions:
     creationTx: { type: String, required: true },
     bombingTx: { type: String, default: null },
     finishingTx: { type: String, default: null },
-    claimReason: { type: String, enum: ['Join Timeout', 'Reveal Timeout'], default: null }
 }, schemaOptions);
 
 cachedGameSchema.virtual('revealedData', {
