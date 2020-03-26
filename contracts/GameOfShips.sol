@@ -171,7 +171,8 @@ contract GameOfShips {
             Ship memory ship = _ships[i];
             if (ship.vertical == true) {
                 // Vertical ship validation
-                require(ship.beginY <= 6, "Invalid ship placement.");
+                require(ship.beginY <= 5, "Invalid ship placement.");
+                require(ship.beginX <= 9, "Invalid ship placement.");
                 // Placing on bit-board + overlay check
                 uint8 endY = ship.beginY + 4;
                 for (uint8 shipPartY = ship.beginY; shipPartY < endY; ++shipPartY) {
@@ -182,7 +183,8 @@ contract GameOfShips {
             }
             else {
                 // Horizontal ship validation
-                require(ship.beginX <= 6, "Invalid ship placement.");
+                require(ship.beginX <= 5, "Invalid ship placement.");
+                require(ship.beginY <= 9, "Invalid ship placement.");
                 // Placing on a bit-board + overlay check
                 uint8 endX = ship.beginX + 4;
                 for (uint8 shipPartX = ship.beginX; shipPartX < endX; ++shipPartX) {

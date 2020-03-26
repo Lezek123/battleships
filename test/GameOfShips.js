@@ -342,30 +342,6 @@ it('Should disallow forced finishing if game was skewed with not enough ships', 
     );
 });
 
-it('Should disallow forced finishing if game was skewed with invalid vertical ship', async function() {
-    let skewedShips = [...DEFAULT_SHIPS];
-    skewedShips.splice(0, 1, { y: 7, x: 0, vertical: true });
-    const MainInstance = await MainContract.deployed();
-    const gameIndex = await initGameContract({ ships: skewedShips });
-    await placeBombsWithValidCost(gameIndex, LOSING_BOMBS);
-    await truffleAssert.reverts(
-        MainInstance.finishGame(gameIndex, shipsToArrShips(skewedShips), DEFAULT_SEED),
-        'Invalid ship placement.'
-    );
-});
-
-it('Should disallow forced finishing if game was skewed with invalid horizontal ship', async function() {
-    let skewedShips = [...DEFAULT_SHIPS];
-    skewedShips.splice(0, 1, { y: 0, x: 7, horizontal: true });
-    const MainInstance = await MainContract.deployed();
-    const gameIndex = await initGameContract({ ships: skewedShips });
-    await placeBombsWithValidCost(gameIndex, LOSING_BOMBS);
-    await truffleAssert.reverts(
-        MainInstance.finishGame(gameIndex, shipsToArrShips(skewedShips), DEFAULT_SEED),
-        'Invalid ship placement.'
-    );
-});
-
 it('Should disallow forced finishing if game was skewed with overlaying ships', async function() {
     let skewedShips = [...DEFAULT_SHIPS];
     skewedShips.splice(
@@ -381,6 +357,39 @@ it('Should disallow forced finishing if game was skewed with overlaying ships', 
         MainInstance.finishGame(gameIndex, shipsToArrShips(skewedShips), DEFAULT_SEED),
         'Placed ships cannot overlay!'
     );
+});
+
+it('Should disallow placing ships "outside" the board', async function() {
+    const ships = [
+        { x: 0, y: 6, horizontal: true },
+        { x: 0, y: 7, horizontal: true },
+        { x: 0, y: 8, horizontal: true },
+        { x: 0, y: 9, horizontal: true }
+    ];
+    const shipsToTest = [
+        { ship: { x: 0, y: 5, horizontal: true }, expectedValidity: true },
+        { ship: { x: 0, y: 0, vertical: true }, expectedValidity: true },
+        { ship: { x: 6, y: 0, horizontal: true }, expectedValidity: false },
+        { ship: { x: 5, y: 6, vertical: true }, expectedValidity: false },
+        { ship: { x: 0, y: 10, horizontal: true }, expectedValidity: false },
+        { ship: { x: 10, y: 0, vertical: true }, expectedValidity: false }
+    ];
+    const MainInstance = await MainContract.deployed();
+    for (shipToTest of shipsToTest) {
+        let skewedShips = [ ...ships, shipToTest.ship ];
+        const gameIndex = await initGameContract({ ships: skewedShips });
+        await placeBombsWithValidCost(gameIndex, LOSING_BOMBS);
+        if (shipToTest.expectedValidity === false) {
+            await truffleAssert.reverts(
+                MainInstance.finishGame(gameIndex, shipsToArrShips(skewedShips), DEFAULT_SEED),
+                'Invalid ship placement.'
+            );
+        }
+        else {
+            // If exception is thrown - the test will fail
+            await MainInstance.finishGame(gameIndex, shipsToArrShips(skewedShips), DEFAULT_SEED);
+        }
+    }
 });
 
 it('Should disallow caliming join timeout return before timeout.', async function() {
