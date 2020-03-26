@@ -230,7 +230,9 @@ export default class CalimNotifications extends Component {
             } catch(e) {
                 console.error(e);
             }
-            this.setState({ withdrawing: false });
+            this.setState({ userBalance: await this._contractsManager.getUserContractBalance() }, () => {
+                this.setState({ withdrawing: false });
+            });
         });
     }
 
