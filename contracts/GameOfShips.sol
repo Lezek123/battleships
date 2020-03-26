@@ -5,14 +5,14 @@ pragma experimental ABIEncoderV2;
 
 contract GameOfShips {
     struct Game {
-        address payable creator;
+        address creator;
         bytes32 creationHash;
         uint prize;
         uint bombCost;
         uint16 revealTimeoutBlocks;
         uint joinTimeoutBlockNumber;
         uint revealTimeoutBlockNumber;
-        address payable bomber;
+        address bomber;
         uint paidBombsCost;
         uint128 bombsBoard; // Board encoded into bits
     }
@@ -40,13 +40,18 @@ contract GameOfShips {
     );
     event ShipsRevealed(
         uint32 _gameIndex,
-        Ship[5] _ships
+        Ship[5] _ships,
+        uint8 _sunkenShipsCount
     );
-    event GameFinished(uint32 _gameIndex, bool _isCreatorClaimer);
+    event GameFinished(uint32 _gameIndex, uint _creatorTransferAmount, uint _bomberTransferAmount);
     event RevealTimeout(uint32 _gameIndex);
     event JoinTimeout(uint32 _gameIndex);
+    event BalanceClaimed(address _address, uint _amount);
+    event BalanceUpdated(address _address, uint _updatedBalance);
 
     mapping (uint32 => Game) public games;
+    mapping (address => uint) public balances;
+
     uint32 lastGameIndex = 0;
     
     function createGame(
@@ -116,8 +121,10 @@ contract GameOfShips {
         require(game.bomber == address(0), "The game already started.");
         delete games[_gameIndex];
         emit JoinTimeout(_gameIndex);
-        emit GameFinished(_gameIndex, true);
-        game.creator.transfer(game.prize);
+        emit GameFinished(_gameIndex, game.prize, 0);
+        
+        balances[game.creator] += game.prize;
+        emit BalanceUpdated(game.creator, balances[game.creator]);
     }
     
     function finishGame(uint32 _gameIndex, Ship[5] memory _ships, bytes32 _seed) public {
@@ -125,18 +132,20 @@ contract GameOfShips {
         Game memory game = games[_gameIndex];
         require(game.creator != address(0), 'Game not found.');
         require(getShipsHash(_ships, _seed) == game.creationHash, "Invalid hash provided.");
-        uint128 shipsBoard = validateShipsAndCreateBoard(_ships);
+        uint8 sunkenShipsCount = validateShipsAndCountSunken(_ships, game.bombsBoard);
+
         delete games[_gameIndex];
-        bool isBomberWinner = (shipsBoard & game.bombsBoard) == shipsBoard;
-        emit ShipsRevealed(_gameIndex, _ships);
-        emit GameFinished(_gameIndex, !isBomberWinner);
-        if (isBomberWinner) {
-            game.bomber.transfer(game.prize);
-            game.creator.transfer(game.paidBombsCost);
-        }
-        else {
-            game.creator.transfer(game.prize + game.paidBombsCost);
-        }
+        
+        uint bomberTransferAmount = game.prize * sunkenShipsCount / 5;
+        uint creatorTransferAmount = game.prize + game.paidBombsCost - bomberTransferAmount;
+
+        emit ShipsRevealed(_gameIndex, _ships, sunkenShipsCount);
+        emit GameFinished(_gameIndex, creatorTransferAmount, bomberTransferAmount);
+
+        balances[game.creator] += creatorTransferAmount;
+        balances[game.bomber] += bomberTransferAmount;
+        emit BalanceUpdated(game.creator, balances[game.creator]);
+        emit BalanceUpdated(game.bomber, balances[game.bomber]);
     }
     
     function claimBomberWinByTimeout(uint32 _gameIndex) public {
@@ -147,9 +156,25 @@ contract GameOfShips {
         require(block.number >= game.revealTimeoutBlockNumber, "Timeout not reached yet.");
         delete games[_gameIndex];
         emit RevealTimeout(_gameIndex);
-        emit GameFinished(_gameIndex, false);
-        game.bomber.transfer(game.prize);
-        game.creator.transfer(game.paidBombsCost);
+        emit GameFinished(_gameIndex, game.paidBombsCost, game.prize);
+
+        balances[game.creator] += game.paidBombsCost;
+        balances[game.bomber] += game.prize;
+        emit BalanceUpdated(game.creator, balances[game.creator]);
+        emit BalanceUpdated(game.bomber, balances[game.bomber]);
+    }
+
+    function claimBalance(address _address) public {
+        uint balanceValue = balances[_address];
+        balances[_address] = 0;
+        (bool success, ) = _address.call.value(balanceValue)("");
+        require(success, "Balance claim failed.");
+        emit BalanceUpdated(_address, balances[_address]);
+        emit BalanceClaimed(_address, balanceValue);
+    }
+
+    function getBalance(address _address) public view returns(uint)  {
+        return balances[_address];
     }
     
     function getShipsHash(Ship[5] memory _ships, bytes32 _seed) private pure returns(bytes32) {
@@ -165,36 +190,46 @@ contract GameOfShips {
         return sha256(bytesToHash);
     }
 
-    function validateShipsAndCreateBoard(Ship[5] memory _ships) private view returns(uint128) {
+    function validateShipsAndCountSunken(Ship[5] memory _ships, uint128 _bombsBoard) private view returns(uint8) {
         uint128 shipsBoard = 0;
+        uint8 sunkenShips = 0;
         for (uint8 i = 0; i < 5; ++i) {
             Ship memory ship = _ships[i];
+            uint8 hitFields = 0;
             if (ship.vertical == true) {
                 // Vertical ship validation
                 require(ship.beginY <= 5, "Invalid ship placement.");
                 require(ship.beginX <= 9, "Invalid ship placement.");
-                // Placing on bit-board + overlay check
                 uint8 endY = ship.beginY + 4;
-                for (uint8 shipPartY = ship.beginY; shipPartY < endY; ++shipPartY) {
+                for (uint8 shipPartY = ship.beginY; shipPartY <= endY; ++shipPartY) {
                     uint128 shipPartPosition = shipPartY * 10 + ship.beginX;
+                    // Overlay check (using current shipsBoard)
                     require(getBoardFieldAtPosition(shipsBoard, shipPartPosition) == false, 'Placed ships cannot overlay!');
+                    // Setting field on shipsBoard
                     shipsBoard += 2 ** shipPartPosition;
+                    // Hit check
+                    if (getBoardFieldAtPosition(_bombsBoard, shipPartPosition) == true) ++hitFields;
                 }
             }
             else {
                 // Horizontal ship validation
                 require(ship.beginX <= 5, "Invalid ship placement.");
                 require(ship.beginY <= 9, "Invalid ship placement.");
-                // Placing on a bit-board + overlay check
                 uint8 endX = ship.beginX + 4;
-                for (uint8 shipPartX = ship.beginX; shipPartX < endX; ++shipPartX) {
+                for (uint8 shipPartX = ship.beginX; shipPartX <= endX; ++shipPartX) {
                     uint128 shipPartPosition = ship.beginY * 10 + shipPartX;
+                    // Overlay check (using current shipsBoard)
                     require(getBoardFieldAtPosition(shipsBoard, shipPartPosition) == false, 'Placed ships cannot overlay!');
+                    // Setting field on shipsBoard
                     shipsBoard += 2 ** shipPartPosition;
+                    // Hit check
+                    if (getBoardFieldAtPosition(_bombsBoard, shipPartPosition) == true) ++hitFields;
                 }
             }
+
+            if (hitFields == 5) ++sunkenShips;
         }
 
-        return shipsBoard;
+        return sunkenShips;
     }
 }

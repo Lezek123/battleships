@@ -1,11 +1,9 @@
 const MainContract = artifacts.require("GameOfShips.sol");
-const crypto = require('crypto');
 const assert = require('assert');
 const truffleAssert = require('truffle-assertions');
 const { calcGameHash } = require('../helpers/hashing');
 const { shipsToArrShips, boardToBN } = require('../helpers/converters');
-const BigNumber = web3.utils.BN;
-
+const { toBN } = web3.utils;
 // Wheter to log action costs during tests
 const LOG_COSTS = true;
 
@@ -13,7 +11,7 @@ const generateRandomSeed = () => Buffer.from(
     Array.from(Array(32)).map(() => Math.floor(Math.random() * 255))
 );
 // Defaults
-const DEFAULT_INIT_VALUE = web3.utils.toWei('0.001', 'ether');
+const DEFAULT_PRIZE = web3.utils.toWei('0.001', 'ether');
 const DEFAULT_BOMB_COST = web3.utils.toWei('0.00002', 'ether');
 const DEFAULT_JOIN_TIMEOUT_BLOCKS = 10;
 const DEFAULT_REVEAL_TIMEOUT_BLOCKS = 10;
@@ -40,7 +38,7 @@ const DEFAULT_BOMBS = [
     [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
 ];
 
-const LOSING_BOMBS = [
+const BOMBS_SINKING_4_SHIPS = [
     [1, 0, 0, 0, 0, 1, 1, 1, 1, 1],
     [1, 0, 0, 0, 0, 1, 1, 1, 1, 1],
     [1, 0, 0, 0, 0, 1, 1, 1, 1, 1],
@@ -50,6 +48,59 @@ const LOSING_BOMBS = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 0, 1, 0, 0, 0, 0, 1],
+];
+
+const BOMBS_SINKING_3_SHIPS = [
+    [1, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 0, 1, 0, 0, 0, 0, 1],
+];
+
+const BOMBS_SINKING_2_SHIPS = [
+    [1, 0, 0, 0, 0, 1, 1, 1, 0, 1],
+    [1, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 0, 1, 0, 0, 0, 0, 1],
+];
+
+const BOMBS_SINKING_1_SHIP = [
+    [1, 0, 0, 0, 0, 1, 1, 1, 0, 1],
+    [1, 0, 0, 0, 0, 1, 1, 1, 0, 1],
+    [1, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 0, 1, 0, 0, 0, 0, 1],
+];
+
+
+const BOMBS_SINKING_NO_SHIP = [
+    [1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
+    [1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
+    [1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
     [1, 1, 1, 0, 1, 0, 0, 0, 0, 1],
 ];
 
@@ -107,7 +158,7 @@ const countPlacedBombs = (bombs) => {
 
 const initGameContract = async (props = {}) => {
     let {
-        initValue = DEFAULT_INIT_VALUE,
+        prize = DEFAULT_PRIZE,
         bombCost = DEFAULT_BOMB_COST,
         revealTimeoutBlocks = DEFAULT_REVEAL_TIMEOUT_BLOCKS,
         joinTimeoutBlocks = DEFAULT_JOIN_TIMEOUT_BLOCKS,
@@ -120,7 +171,7 @@ const initGameContract = async (props = {}) => {
         bombCost,
         revealTimeoutBlocks,
         joinTimeoutBlocks,
-        { value: initValue, from: await getDefaultCreatorAddress() }
+        { value: prize, from: await getDefaultCreatorAddress() }
     );
     logTransactionCost('Game creation', result);
     return result.logs[0].args._gameIndex;
@@ -172,7 +223,7 @@ it('Should be fetchable and have correct params after init', async function() {
     const MainInstance = await MainContract.deployed();
     const gameIndex = await initGameContract();
     const game = await MainInstance.games(gameIndex);
-    assert.equal(game.prize, DEFAULT_INIT_VALUE);
+    assert.equal(game.prize, DEFAULT_PRIZE);
     assert.equal(game.bombCost, DEFAULT_BOMB_COST);
     assert.equal(game.revealTimeoutBlocks, DEFAULT_REVEAL_TIMEOUT_BLOCKS);
 });
@@ -209,8 +260,6 @@ it('Should disallow placing bombs twice', async function() {
 
 it('Should disallow finishing game twice', async function() {
     const MainInstance = await MainContract.deployed();
-    // Init a few games so that contract address has enough balance to not fail due to lack of ether
-    for (let i = 0; i < 10; ++i) await initGameContract();
     const gameIndex = await initGameContract();
     await placeBombsWithValidCost(gameIndex);
     await MainInstance.finishGame(gameIndex, shipsToArrShips(DEFAULT_SHIPS), DEFAULT_SEED);
@@ -235,11 +284,11 @@ it('Should correctly handle bomber valid "win-by-timeout" claim', async function
     const game = await MainInstance.games(gameIndex);
     await untilBlock(game.revealTimeoutBlockNumber.toNumber());
 
-    const bomberAddress = await getDefaultBomberAddress();
-    const bomberBalanceBeforeClaim = web3.utils.toBN(await web3.eth.getBalance(bomberAddress));
+    const bomberAddr = await getDefaultBomberAddress();
+    const bomberBalanceBeforeClaim = await MainInstance.getBalance(bomberAddr);
     const result = await MainInstance.claimBomberWinByTimeout(gameIndex);
-    const bomberBalanceAfterClaim = web3.utils.toBN(await web3.eth.getBalance(bomberAddress));
-    const expectedBalance = bomberBalanceBeforeClaim.add(web3.utils.toBN(DEFAULT_INIT_VALUE));
+    const bomberBalanceAfterClaim = await MainInstance.getBalance(bomberAddr);
+    const expectedBalance = bomberBalanceBeforeClaim.add(toBN(DEFAULT_PRIZE));
 
     assert.strictEqual(bomberBalanceAfterClaim.toString(), expectedBalance.toString());
 
@@ -248,8 +297,7 @@ it('Should correctly handle bomber valid "win-by-timeout" claim', async function
 
 it('Should disallow using bomer\'s "win-by-timeout" claim twice', async function() {
     const MainInstance = await MainContract.deployed();
-    // Init a few games so that contract address has enough balance to not fail due to lack of ether
-    for (let i = 0; i < 10; ++i) await initGameContract();
+
     const gameIndex = await initGameContract();
     await placeBombsWithValidCost(gameIndex);
 
@@ -260,58 +308,56 @@ it('Should disallow using bomer\'s "win-by-timeout" claim twice', async function
     await truffleAssert.fails(MainInstance.claimBomberWinByTimeout(gameIndex));
 });
 
-it('Should send prize to bomber and bombsCost to creator if creator lost', async function() {
+it('Should correctly split funds on different valid finish scenarios', async function() {
     const MainInstance = await MainContract.deployed();
-    const gameIndex = await initGameContract();
-    // Place bombs
-    await placeBombsWithValidCost(gameIndex);
+
+    let scenarios = [
+        { bombs: DEFAULT_BOMBS, expectedBomberPrize: toBN(DEFAULT_PRIZE) },
+        { bombs: BOMBS_SINKING_4_SHIPS, expectedBomberPrize: toBN(DEFAULT_PRIZE).div(toBN(5)).mul(toBN(4)) },
+        { bombs: BOMBS_SINKING_3_SHIPS, expectedBomberPrize: toBN(DEFAULT_PRIZE).div(toBN(5)).mul(toBN(3)) },
+        { bombs: BOMBS_SINKING_2_SHIPS, expectedBomberPrize: toBN(DEFAULT_PRIZE).div(toBN(5)).mul(toBN(2)) },
+        { bombs: BOMBS_SINKING_1_SHIP, expectedBomberPrize: toBN(DEFAULT_PRIZE).div(toBN(5)).mul(toBN(1)) },
+        { bombs: BOMBS_SINKING_NO_SHIP, expectedBomberPrize: toBN(0) },
+    ];
 
     const creatorAddr = await getDefaultCreatorAddress();
     const bomberAddr = await getDefaultBomberAddress();
-    
-    const creatorBalanceBefore = web3.utils.toBN(await web3.eth.getBalance(creatorAddr));
-    const bomberBalanceBefore = web3.utils.toBN(await web3.eth.getBalance(bomberAddr));
-    const result = await MainInstance.finishGame(gameIndex, shipsToArrShips(DEFAULT_SHIPS), DEFAULT_SEED);
-    const creatorBalanceAfter = web3.utils.toBN(await web3.eth.getBalance(creatorAddr));
-    const bomberBalanceAfter = web3.utils.toBN(await web3.eth.getBalance(bomberAddr));
 
-    const bombsCost = web3.utils.toBN(DEFAULT_BOMB_COST).mul(web3.utils.toBN(countPlacedBombs(DEFAULT_BOMBS)));
-    const prize = web3.utils.toBN(DEFAULT_INIT_VALUE);
+    for (index in scenarios) {
+        const scenario = scenarios[index];
+        const initialCreatorBalance = await MainInstance.getBalance(creatorAddr);
+        const initialBomberBalance = await MainInstance.getBalance(bomberAddr);
+        const gameIndex = await initGameContract();
+        // Place bombs
+        await placeBombsWithValidCost(gameIndex, scenario.bombs);
+        
+        const result = await MainInstance.finishGame(gameIndex, shipsToArrShips(DEFAULT_SHIPS), DEFAULT_SEED);
+        const creatorBalanceAfter = await MainInstance.getBalance(creatorAddr);
+        const bomberBalanceAfter = await MainInstance.getBalance(bomberAddr);
 
-    assert.deepEqual(creatorBalanceAfter.toString(), creatorBalanceBefore.add(bombsCost).toString());
-    assert.deepEqual(bomberBalanceAfter.toString(), bomberBalanceBefore.add(prize).toString());
+        const bombsCost = toBN(DEFAULT_BOMB_COST).mul(toBN(countPlacedBombs(scenario.bombs)));
+        const prize = toBN(DEFAULT_PRIZE);
 
-    logTransactionCost('Game finishing', result);
-});
+        // console.log('Initial creator balance:', initialCreatorBalance.toString());
+        // console.log('Initial bomber balance:', initialBomberBalance.toString());
+        // console.log('Bombs cost:', bombsCost.toString());
+        // console.log('Prize:', prize.toString());
+        // console.log('Expected bomber prize:', scenario.expectedBomberPrize.toString());
 
-it('Should send prize and bombsCost to creator if creator won', async function() {
-    const MainInstance = await MainContract.deployed();
-    const gameIndex = await initGameContract();
-    // Place bombs
-    await placeBombsWithValidCost(gameIndex, LOSING_BOMBS);
+        const expectedBomberBalance = initialBomberBalance.add(scenario.expectedBomberPrize);
+        const expectedCreatorBalance = initialCreatorBalance.add(bombsCost).add(prize).sub(scenario.expectedBomberPrize);
 
-    const creatorAddr = await getDefaultCreatorAddress();
-    const bomberAddr = await getDefaultBomberAddress();
-    
-    const creatorBalanceBefore = web3.utils.toBN(await web3.eth.getBalance(creatorAddr));
-    const bomberBalanceBefore = web3.utils.toBN(await web3.eth.getBalance(bomberAddr));
-    const result = await MainInstance.finishGame(gameIndex, shipsToArrShips(DEFAULT_SHIPS), DEFAULT_SEED);
-    const creatorBalanceAfter = web3.utils.toBN(await web3.eth.getBalance(creatorAddr));
-    const bomberBalanceAfter = web3.utils.toBN(await web3.eth.getBalance(bomberAddr));
+        assert.deepEqual(creatorBalanceAfter.toString(), expectedCreatorBalance.toString(), `Invalid creator balance in scenario ${ index }`);
+        assert.deepEqual(bomberBalanceAfter.toString(), expectedBomberBalance.toString(), `Invalid bomber balance in scenario ${ index }`);
 
-    const bombsCost = web3.utils.toBN(DEFAULT_BOMB_COST).mul(web3.utils.toBN(countPlacedBombs(DEFAULT_BOMBS)));
-    const prize = web3.utils.toBN(DEFAULT_INIT_VALUE);
-
-    assert.deepEqual(creatorBalanceAfter.toString(), creatorBalanceBefore.add(bombsCost).add(prize).toString());
-    assert.deepEqual(bomberBalanceAfter.toString(), bomberBalanceBefore.toString());
-
-    logTransactionCost('Game finishing', result);
+        logTransactionCost('Game finishing', result);
+    }
 });
 
 it('Should disallow finishing if seed is incorrect', async function() {
     const MainInstance = await MainContract.deployed();
     const gameIndex = await initGameContract();
-    await placeBombsWithValidCost(gameIndex, LOSING_BOMBS);
+    await placeBombsWithValidCost(gameIndex, BOMBS_SINKING_NO_SHIP);
     const skewedSeed = generateRandomSeed();
     await truffleAssert.reverts(
         MainInstance.finishGame(gameIndex, shipsToArrShips(DEFAULT_SHIPS), skewedSeed),
@@ -322,7 +368,7 @@ it('Should disallow finishing if seed is incorrect', async function() {
 it('Should disallow forced finishing if ships positions are changed', async function() {
     const MainInstance = await MainContract.deployed();
     const gameIndex = await initGameContract();
-    await placeBombsWithValidCost(gameIndex, LOSING_BOMBS);
+    await placeBombsWithValidCost(gameIndex, BOMBS_SINKING_NO_SHIP);
     let skewedShips = [...DEFAULT_SHIPS];
     skewedShips.splice(0, 1, { x: 0, y: 0, vertical: false });
     await truffleAssert.reverts(
@@ -336,7 +382,7 @@ it('Should disallow forced finishing if game was skewed with not enough ships', 
     skewedShips.splice(0, 1);
     const MainInstance = await MainContract.deployed();
     const gameIndex = await initGameContract({ ships: skewedShips });
-    await placeBombsWithValidCost(gameIndex, LOSING_BOMBS);;
+    await placeBombsWithValidCost(gameIndex, BOMBS_SINKING_NO_SHIP);;
     await truffleAssert.fails(
         MainInstance.finishGame(gameIndex, shipsToArrShips(skewedShips), DEFAULT_SEED)
     );
@@ -352,7 +398,7 @@ it('Should disallow forced finishing if game was skewed with overlaying ships', 
     );
     const MainInstance = await MainContract.deployed();
     const gameIndex = await initGameContract({ ships: skewedShips });
-    await placeBombsWithValidCost(gameIndex, LOSING_BOMBS);
+    await placeBombsWithValidCost(gameIndex, BOMBS_SINKING_NO_SHIP);
     await truffleAssert.reverts(
         MainInstance.finishGame(gameIndex, shipsToArrShips(skewedShips), DEFAULT_SEED),
         'Placed ships cannot overlay!'
@@ -378,7 +424,7 @@ it('Should disallow placing ships "outside" the board', async function() {
     for (shipToTest of shipsToTest) {
         let skewedShips = [ ...ships, shipToTest.ship ];
         const gameIndex = await initGameContract({ ships: skewedShips });
-        await placeBombsWithValidCost(gameIndex, LOSING_BOMBS);
+        await placeBombsWithValidCost(gameIndex, BOMBS_SINKING_NO_SHIP);
         if (shipToTest.expectedValidity === false) {
             await truffleAssert.reverts(
                 MainInstance.finishGame(gameIndex, shipsToArrShips(skewedShips), DEFAULT_SEED),
@@ -425,10 +471,10 @@ it('Should allow caliming valid join timeout return.', async function() {
     await untilBlock(joinTimeoutBlockNumber);
 
     const creatorAddr = await getDefaultCreatorAddress();
-    const creatorBalanceBefore = web3.utils.toBN(await web3.eth.getBalance(creatorAddr));
+    const creatorBalanceBefore = await MainInstance.getBalance(creatorAddr);
     const result = await MainInstance.claimJoinTimeoutReturn(gameIndex);
-    const creatorBalanceAfter = web3.utils.toBN(await web3.eth.getBalance(creatorAddr));
-    const prize = web3.utils.toBN(DEFAULT_INIT_VALUE);
+    const creatorBalanceAfter = await MainInstance.getBalance(creatorAddr);
+    const prize = toBN(DEFAULT_PRIZE);
 
     assert.deepEqual(creatorBalanceAfter.toString(), creatorBalanceBefore.add(prize).toString());
 
@@ -437,8 +483,7 @@ it('Should allow caliming valid join timeout return.', async function() {
 
 it('Should disallow caliming join timeout return twice.', async function() {
     const MainInstance = await MainContract.deployed();
-    // Init a few games so that contract address has enough balance to not fail due to lack of ether
-    for (let i = 0; i < 10; ++i) await initGameContract();
+
     const gameIndex = await initGameContract();
     const game = await MainInstance.games(gameIndex);
     const joinTimeoutBlockNumber = parseInt(game.joinTimeoutBlockNumber);
@@ -470,6 +515,39 @@ it('Should disallow placing less than 25 bombs', async function() {
         MainInstance.setBombs(gameIndex, boardToBN(bombsBoard), { value: DEFAULT_BOMB_COST * 24 }),
         'You need to place at least 25 bombs.'
     );
+});
+
+it('Should correctly handle balance claim', async function() {
+    // Create and finish simple game
+    const MainInstance = await MainContract.deployed();
+    const gameIndex = await initGameContract();
+    await placeBombsWithValidCost(gameIndex);
+    await MainInstance.finishGame(gameIndex, shipsToArrShips(DEFAULT_SHIPS), DEFAULT_SEED);
+    // Claim balances
+    const creatorAddr = await getDefaultCreatorAddress();
+    const bomberAddr = await getDefaultBomberAddress();
+
+    const creatorContrBalanceBefore = await MainInstance.getBalance(creatorAddr);
+    const bomberContrBalanceBefore = await MainInstance.getBalance(bomberAddr);
+    const creatorAddrBalanceBefore = toBN(await web3.eth.getBalance(creatorAddr));
+    const bomberAddrBalanceBefore = toBN(await web3.eth.getBalance(bomberAddr));
+    let result1 = await MainInstance.claimBalance(creatorAddr);
+    let result2 = await MainInstance.claimBalance(bomberAddr);
+    const creatorContrBalanceAfter = await MainInstance.getBalance(creatorAddr);
+    const bomberContrBalanceAfter = await MainInstance.getBalance(bomberAddr);
+    const creatorAddrBalanceAfter = toBN(await web3.eth.getBalance(creatorAddr));
+    const bomberAddrBalanceAfter = toBN(await web3.eth.getBalance(bomberAddr));
+
+    const creatorAddrExpectedBalance = creatorAddrBalanceBefore.add(creatorContrBalanceBefore);
+    const bomberAddrExpectedBalance = bomberAddrBalanceBefore.add(bomberContrBalanceBefore);
+
+    assert.deepEqual(creatorContrBalanceAfter.toString(), '0', 'Invalid creator contract balance');
+    assert.deepEqual(creatorAddrBalanceAfter.toString(), creatorAddrExpectedBalance.toString(), 'Invalid creator address balance');
+    assert.deepEqual(bomberContrBalanceAfter.toString(), '0', 'Invalid bomber contract balance');
+    assert.deepEqual(bomberAddrBalanceAfter.toString(), bomberAddrExpectedBalance.toString(), 'Invalid bomber address balance');
+
+    logTransactionCost('Balance claim', result1);
+    logTransactionCost('Balance claim', result2);
 });
 
 it('Should log transactions costs if on', async function() {
