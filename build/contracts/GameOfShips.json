@@ -30160,11 +30160,120 @@
           "name": "ShipsRevealed",
           "type": "event",
           "signature": "0x2dfdd0de1636e713b34bbd87916d78150c7616add462d399f864c7621160378a"
+        },
+        "0xe64799e036cf6322d0c3b6d11f4e2fc9d1bd9bb5938dd3d6835921a427c89b8f": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "_address",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "_amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "BalanceClaimed",
+          "type": "event",
+          "signature": "0xe64799e036cf6322d0c3b6d11f4e2fc9d1bd9bb5938dd3d6835921a427c89b8f"
+        },
+        "0x8ad64a0ac7700dd8425ab0499f107cb6e2cd1581d803c5b8c1c79dcb8190b1af": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "_address",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "_updatedBalance",
+              "type": "uint256"
+            }
+          ],
+          "name": "BalanceUpdated",
+          "type": "event",
+          "signature": "0x8ad64a0ac7700dd8425ab0499f107cb6e2cd1581d803c5b8c1c79dcb8190b1af"
+        },
+        "0x046636f0af9fbefdec77aa1d3189e3ae3693351147643e6d6aaa2bef20cd617b": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "_gameIndex",
+              "type": "uint32"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "_creatorTransferAmount",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "_bomberTransferAmount",
+              "type": "uint256"
+            }
+          ],
+          "name": "GameFinished",
+          "type": "event",
+          "signature": "0x046636f0af9fbefdec77aa1d3189e3ae3693351147643e6d6aaa2bef20cd617b"
+        },
+        "0x10a12948dac4bc0d11cf2cb78552e1a3dc3e546ad23dd72558a6f6369fcd1468": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "_gameIndex",
+              "type": "uint32"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "uint8",
+                  "name": "beginX",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "uint8",
+                  "name": "beginY",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "vertical",
+                  "type": "bool"
+                }
+              ],
+              "indexed": false,
+              "internalType": "struct GameOfShips.Ship[5]",
+              "name": "_ships",
+              "type": "tuple[5]"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint8",
+              "name": "_sunkenShipsCount",
+              "type": "uint8"
+            }
+          ],
+          "name": "ShipsRevealed",
+          "type": "event",
+          "signature": "0x10a12948dac4bc0d11cf2cb78552e1a3dc3e546ad23dd72558a6f6369fcd1468"
         }
       },
       "links": {},
-      "address": "0xCF3124431B76B0954861434d3fFc9964648FD336",
-      "transactionHash": "0x66ef42e50b02624c16cae79be3f59712e8be467237bf58f8acfdaa7df940edf8"
+      "address": "0xeEF08d3bee9e4BD6aF7F328b4c8C11C53E78BC51",
+      "transactionHash": "0x2bbeb80d7a8df1c6983417b78525767435c0d77b2d4520e9694c8e8c3d95e8e9"
     },
     "5777": {
       "events": {
@@ -30451,7 +30560,7 @@
     }
   },
   "schemaVersion": "3.0.19",
-  "updatedAt": "2020-03-26T15:52:17.084Z",
+  "updatedAt": "2020-03-26T23:31:10.689Z",
   "networkType": "ethereum",
   "devdoc": {
     "methods": {}
