@@ -10,6 +10,7 @@ import GAME_STATUSES from '../constants/gameStatuses';
 import EVENTS from '../constants/events';
 
 const cookies = new Cookies();
+const CHECK_ACCOUNT_INTERVAL_TIME = 500;
 const SEED_REVEAL_INTERVAL_TIME = 10000;
 const SEED_REVEAL_ENDPOINT = '/reveal';
 
@@ -17,7 +18,10 @@ export default class ContractsManager {
     initializing = false;
     initialized = false;
 
+    userSelectedAccount = null;
+
     _seedRevealInterval = null;
+    _accountCheckInterval = null;
     _web3 = null;
     _factoryInstance = null;
 
@@ -39,7 +43,10 @@ export default class ContractsManager {
             MainContract.setProvider(this._web3.currentProvider);
             this._mainContractInstance = await MainContract.deployed();
 
+            await this.checkSelectedAccount();
+
             this._seedRevealInterval = setInterval(this.seedRevealDuty, SEED_REVEAL_INTERVAL_TIME);
+            this._accountCheckInterval = setInterval(this.checkSelectedAccount, CHECK_ACCOUNT_INTERVAL_TIME);
 
             this.initializing = false;
             this.initialized = true;
@@ -87,9 +94,18 @@ export default class ContractsManager {
         return this._mainContractInstance;
     }
 
+    checkSelectedAccount = async () => {
+        // Don't await load, cuz it will cause infinite await.
+        // This method is always called after web3 had been initialized
+        const accounts = await this._web3.eth.getAccounts();
+        if (this.userSelectedAccount === null) this.userSelectedAccount = accounts[0];
+        if (this.userSelectedAccount !== accounts[0]) {
+            window.location.reload();
+        }
+    }
+
     getUserAddr = async () => {
-        await this.load();
-        return this._web3.currentProvider.selectedAddress;
+        return this.userSelectedAccount;
     }
 
     getUserContractBalance = async () => {

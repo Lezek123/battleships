@@ -15,6 +15,7 @@ import ContractsManager from './helpers/contracts';
 import Loader from './components/loader';
 import ShootingShipLogo from './components/shootingShipLogo';
 import CalimNotifications from './components/claimNotifications';
+import mmDownloadImg from './images/mm-download.png';
 
 const StyledApp = styled.div`
 	background-color: ${ colorWithAlpha(color.MAIN_BG, 0.9) };
@@ -64,12 +65,23 @@ const StartScreenLink = styled(BigButton)`
 const MetamaskScreen = styled.div`
 	font-size: 20px;
 	${ centerFlex('column') };
+	background: rgba(0,0,0,0.2);
+	padding: 20px 40px;
+	border-radius: 20px;
 `;
 const MetamaskScreenInfo = styled.div`
-	color: ${ color.INFO_LIGHT };
 	margin-bottom: 20px;
 	font-weight: 600;
 	text-align: center;
+	max-width: 600px;
+`;
+const MetamaskScreenInfoTitle = styled.h1`
+	font-size: 40px;
+	margin: 10px 0;
+`;
+const MetamaskDownload = styled.img`
+	width: 100%;
+	max-width: 600px;
 `;
 
 class App extends Component {
@@ -100,11 +112,12 @@ class App extends Component {
 				<StyledApp>
 					<MetamaskScreen>
 						<MetamaskScreenInfo>
-							You'll need a browser Ethereum wallet in order to interact with this page!
+							<MetamaskScreenInfoTitle>Hold on!</MetamaskScreenInfoTitle>
+							You're gonna need an Ethereum wallet extension for your browser in order to interact with this page!
 						</MetamaskScreenInfo>
-						<BigButton as={'a'} href={`https://chrome.google.com/webstore/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn`} target="_blank">
-							Download MetaMask Chrome extension
-						</BigButton>
+						<a href={`https://metamask.io`} target="_blank">
+							<MetamaskDownload src={ mmDownloadImg }/>
+						</a>
 					</MetamaskScreen>
 				</StyledApp>
 			)
