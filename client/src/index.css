@@ -1,10 +1,6 @@
 body {
   margin: 0;
   font-family: 'Open Sans';
-  background-image: url('/bg.jpg');
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-position: center center;
 }
 
 * {

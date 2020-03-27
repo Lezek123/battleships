@@ -18,11 +18,23 @@ import CalimNotifications from './components/claimNotifications';
 import mmDownloadImg from './images/mm-download.png';
 
 const StyledApp = styled.div`
-	background-color: ${ colorWithAlpha(color.MAIN_BG, 0.9) };
+	background-image: url('/bg.jpg');
+	background-size: cover;
+	background-repeat: no-repeat;
+	background-position: center center;
 	min-height: 100vh;
+`;
+
+const AppMain = styled.div`
+	background-color: ${ colorWithAlpha(color.MAIN_BG, 0.9) };
+	position: absolute;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	right: 0;
 	font-size: 16px;
 	color: white;
-	${ centerFlex('column') }
+	${ centerFlex('column') };
 	overflow: hidden;
 `;
 
@@ -107,61 +119,58 @@ class App extends Component {
 		const { initialized, metamaskScreen } = this.state;
 		const { fetchUsersGames, getUsersGamesCount, fetchAllGames, getAllGamesCount } = this._contractsManager;
 
-		if (metamaskScreen) {
-			return (
-				<StyledApp>
-					<MetamaskScreen>
-						<MetamaskScreenInfo>
-							<MetamaskScreenInfoTitle>Hold on!</MetamaskScreenInfoTitle>
-							You're gonna need an Ethereum wallet extension for your browser in order to interact with this page!
-						</MetamaskScreenInfo>
-						<a href={`https://metamask.io`} target="_blank">
-							<MetamaskDownload src={ mmDownloadImg }/>
-						</a>
-					</MetamaskScreen>
-				</StyledApp>
-			)
-		}
-		else if (!initialized) {
-			return <StyledApp><Loader /></StyledApp>;
-		}
-
 		return (
 			<StyledApp>
-				{ this.props.location.pathname !== '/' && (<>
-					<Nav />
-					<CalimNotifications />
-				</>) }
-				<AppBody>
-					<Switch>
-						<Route path={ MY_GAMES_PATH }>
-							<GamesListWrapper fetchMethod={ fetchUsersGames } countMethod={ getUsersGamesCount } />
-						</Route>
-						<Route path={ GAME_PATH } render={ props => {
-							return <Game index={props.match.params.id} />;
-						} } />
-						<Route path={ CREATE_GAME_PATH }>
-							<CreateGameForm />
-						</Route>
-						<Route path={ GAMES_LIST_PATH }>
-							<GamesListWrapper fetchMethod={ fetchAllGames } countMethod={ getAllGamesCount } />
-						</Route>
-						<Route path="/">
-							<AppHeader>
-								<ShootingShipLogo />
-								<AppTitle>Ethereum Battleships</AppTitle>
-								<StartScreenLinks>
-									<StartScreenLink as={Link} to={CREATE_GAME_PATH}>
-										Create a game
-									</StartScreenLink>
-									<StartScreenLink as={Link} to={GAMES_LIST_PATH}>
-										Join a game
-									</StartScreenLink>
-								</StartScreenLinks>
-							</AppHeader>
-						</Route>
-					</Switch>
-				</AppBody>
+				<AppMain>
+					{ (!metamaskScreen && !initialized) && <Loader /> }
+					{ metamaskScreen && (
+						<MetamaskScreen>
+							<MetamaskScreenInfo>
+								<MetamaskScreenInfoTitle>Hold on!</MetamaskScreenInfoTitle>
+								You're gonna need an Ethereum wallet extension for your browser in order to interact with this page!
+							</MetamaskScreenInfo>
+							<a href={`https://metamask.io`} target="_blank">
+								<MetamaskDownload src={ mmDownloadImg }/>
+							</a>
+						</MetamaskScreen>
+					) }
+					{ initialized && (<>
+						{ this.props.location.pathname !== '/' && (<>
+							<Nav />
+							<CalimNotifications />
+						</>) }
+						<AppBody>
+							<Switch>
+								<Route path={ MY_GAMES_PATH }>
+									<GamesListWrapper fetchMethod={ fetchUsersGames } countMethod={ getUsersGamesCount } />
+								</Route>
+								<Route path={ GAME_PATH } render={ props => {
+									return <Game index={props.match.params.id} />;
+								} } />
+								<Route path={ CREATE_GAME_PATH }>
+									<CreateGameForm />
+								</Route>
+								<Route path={ GAMES_LIST_PATH }>
+									<GamesListWrapper fetchMethod={ fetchAllGames } countMethod={ getAllGamesCount } />
+								</Route>
+								<Route path="/">
+									<AppHeader>
+										<ShootingShipLogo />
+										<AppTitle>Ethereum Battleships</AppTitle>
+										<StartScreenLinks>
+											<StartScreenLink as={Link} to={CREATE_GAME_PATH}>
+												Create a game
+											</StartScreenLink>
+											<StartScreenLink as={Link} to={GAMES_LIST_PATH}>
+												Join a game
+											</StartScreenLink>
+										</StartScreenLinks>
+									</AppHeader>
+								</Route>
+							</Switch>
+						</AppBody>
+					</>) }
+				</AppMain>
 			</StyledApp>
 		);
 	}
